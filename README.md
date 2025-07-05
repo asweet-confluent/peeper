@@ -1,6 +1,6 @@
-# GitHub Notifications - TypeScript Edition
+# Peeper - GitHub Notifications
 
-A comprehensive Electron application for managing GitHub notifications with powerful filtering and desktop notification capabilities, now built with TypeScript for enhanced type safety and developer experience.
+A comprehensive Electron application for managing GitHub notifications with powerful filtering and desktop notification capabilities, built with TypeScript for enhanced type safety and developer experience.
 
 ## 🚀 Features
 
@@ -24,7 +24,7 @@ This project has been converted from JavaScript to TypeScript, providing:
 ### Project Structure
 
 ```
-gh-notify/
+peeper/
 ├── src/
 │   ├── types.ts                 # TypeScript type definitions
 │   ├── database.ts              # SQLite database management
@@ -87,7 +87,7 @@ gh-notify/
 The project includes VS Code tasks for:
 - **Build TypeScript**: Compile the project
 - **Watch TypeScript**: Run TypeScript in watch mode
-- **Start GitHub Notifications App**: Build and run the application
+- **Start Peeper**: Build and run the application
 
 ### TypeScript Configuration
 

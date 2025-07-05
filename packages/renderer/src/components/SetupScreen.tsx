@@ -53,7 +53,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onTokenSaved }) => {
   return (
     <div className="setup-screen">
       <div className="setup-card">
-        <h1>GitHub Notifications</h1>
+        <h1>Peeper</h1>
         <p>
           To get started, you'll need a GitHub personal access token with
           the

@@ -179,7 +179,7 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({
             <h3>About</h3>
             <div className="preference-item">
               <p className="preference-description">
-                GitHub Notifications Desktop App
+                Peeper - GitHub Notifications Desktop App
                 <br />
                 Version 1.0.0
                 <br />

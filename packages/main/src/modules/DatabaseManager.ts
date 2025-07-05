@@ -10,11 +10,11 @@ import type { ModuleContext } from '../ModuleContext.js'
 export class DatabaseManager {
   private dbPath: string
   private db: sqlite3.Database | null = null
-  private encryptionKey: string = 'gh-notify-secret-key' // In production, this should be more secure
+  private encryptionKey: string = 'peeper-secret-key' // In production, this should be more secure
 
   constructor() {
     const userDataPath = app.getPath('userData')
-    this.dbPath = path.join(userDataPath, 'github-notifications.db')
+    this.dbPath = path.join(userDataPath, 'peeper-notifications.db')
   }
 
 
