@@ -9,6 +9,7 @@ class DevTools implements AppModule {
     // Wait for app to be ready before setting up IPC
     context.app.whenReady().then(() => {
       if (process.env.NODE_ENV === 'development') {
+        // @ts-ignore
         return installExtension.default(REACT_DEVELOPER_TOOLS, {
           loadExtensionOptions: {
             allowFileAccess: true,
