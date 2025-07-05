@@ -1,0 +1,13 @@
+{
+  "name": "@app/electron-versions",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "A set of helper functions to get the versions of internal components bundled within Electron.",
+  "exports": {
+    ".": "./index.js"
+  },
+  "main": "./index.js",
+  "files": [
+    "index.js"
+  ]
+}

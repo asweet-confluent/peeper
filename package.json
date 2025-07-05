@@ -1,0 +1,45 @@
+{
+  "name": "gh-notify",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Get GitHub notifications on your desktop.",
+  "author": "",
+  "license": "ISC",
+  "main": "packages/entry-point.mjs",
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:dev": "npm run build --workspaces --if-present",
+    "compile": "npm run build && electron-builder build --config electron-builder.mjs",
+    "test": "npx playwright test ./tests/e2e.spec.ts",
+    "start": "node packages/dev-mode.js",
+    "dev": "npm run start",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "dependencies": {
+    "@app/main": "*"
+  },
+  "devDependencies": {
+    "@electron-toolkit/preload": "^3.0.2",
+    "@npmcli/map-workspaces": "^4.0.2",
+    "@octokit/types": "^14.1.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^24.0.10",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "crossenv": "^0.0.2-security",
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^3.1.0",
+    "electronmon": "^2.0.3",
+    "mlly": "^1.7.3",
+    "playwright": "^1.51.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.0.5"
+  },
+  "overrides": {
+    "electron": "^37.2.0"
+  }
+}
