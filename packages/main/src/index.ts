@@ -18,7 +18,7 @@ export async function initApp(initConfig: AppInitConfig) {
   await moduleRunner.init(withGitHubAPI())
   await moduleRunner.init(withNotificationManager())
   await moduleRunner.init(setupIpcHandlers())
-  await moduleRunner.init(withDevTools())
+  // await moduleRunner.init(withDevTools())
 
   await moduleRunner
   
