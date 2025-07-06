@@ -3,8 +3,8 @@
   "type": "module",
   "version": "1.0.0",
   "description": "Peep into your GitHub notifications on your desktop.",
-  "author": "",
-  "license": "ISC",
+  "author": "Alex Sweet <asweet@confluent.io>",
+  "license": "Apache-2.0",
   "main": "packages/entry-point.mjs",
   "scripts": {
     "build": "npm run build --workspaces --if-present",
