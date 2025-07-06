@@ -72,9 +72,9 @@ export class GitHubAPI {
       const notifications = await octokit.paginate(
         octokit.rest.activity.listNotificationsForAuthenticatedUser,
         {
-          all: false,
+          all: true,
           participating: false,
-          per_page: 100,
+          per_page: 500,
           ...(since && { since }),
         },
         (response, _done) => {
