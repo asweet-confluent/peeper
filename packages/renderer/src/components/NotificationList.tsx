@@ -8,6 +8,31 @@ const HEADER_HEIGHT = 80
 const DEFAULT_ITEM_HEIGHT = 175 // Initial estimate, will be measured dynamically
 const OVERSCAN_COUNT = 5
 
+// Utility function to convert GitHub API URLs to browser URLs
+const convertApiUrlToBrowserUrl = (apiUrl: string): string => {
+  if (!apiUrl) return apiUrl
+
+  // Handle issues and pull requests: https://api.github.com/repos/owner/repo/(issues|pulls)/123
+  if (/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+\/(issues|pulls)\/[0-9]+$/.test(apiUrl)) {
+    return apiUrl.replace(/^https:\/\/api\.github\.com\/repos\//, 'https://github.com/')
+  }
+  
+  // Handle issue comments: https://api.github.com/repos/owner/repo/issues/comments/123
+  const issueCommentMatch = apiUrl.match(/^https:\/\/api\.github\.com\/repos\/([^/]+\/[^/]+)\/issues\/comments\/([0-9]+)$/)
+  if (issueCommentMatch) {
+    const [, repo, commentId] = issueCommentMatch
+    return `https://github.com/${repo}/issues#issuecomment-${commentId}`
+  }
+  
+  // Handle other repository URLs: https://api.github.com/repos/owner/repo/...
+  if (/^https:\/\/api\.github\.com\/repos\//.test(apiUrl)) {
+    return apiUrl.replace(/^https:\/\/api\.github\.com\/repos\//, 'https://github.com/')
+  }
+  
+  // Return as-is if no pattern matches
+  return apiUrl
+}
+
 interface NotificationListProps {
   onMarkAsRead: (notificationId: string) => void
   initialPageSize?: number
@@ -195,7 +220,6 @@ const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, 
               className="notification-title"
               onClick={(e) => {
                 e.preventDefault()
-                const url = `https://github.com/`
                 handleNotificationClick(notification.subject_url || '#', notification.id, !!notification.unread)
               }}
             >
@@ -387,7 +411,8 @@ const NotificationList: React.FC<NotificationListProps> = ({
 
   const handleNotificationClick = useCallback((url: string, notificationId: string, isUnread: boolean) => {
     if (url && url !== '#') {
-      window.api.invoke.openExternal(url)
+      const browserUrl = convertApiUrlToBrowserUrl(url)
+      window.api.invoke.openExternal(browserUrl)
       if (isUnread) {
         onMarkAsRead(notificationId)
       }
