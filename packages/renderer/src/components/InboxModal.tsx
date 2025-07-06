@@ -20,7 +20,7 @@ const InboxModal: React.FC<InboxModalProps> = ({
   useEffect(() => {
     if (inbox) {
       setName(inbox.name)
-      setFilterExpression(inbox.filter_expression)
+      setFilterExpression(inbox.filter_expression || '')
       setDesktopNotifications(!!inbox.desktop_notifications)
     }
     else {

@@ -1,6 +1,6 @@
 import type { IpcMainInvokeEvent } from 'electron'
 import type { IpcBridgeApiEmitterGenerator, IpcBridgeApiGenerator } from 'electron-typed-ipc-bridge/main'
-import type { DatabaseManager } from './modules/DatabaseManager.js'
+import type { KyselyDatabaseManager } from './database/kysely-database-manager.js'
 import type { GitHubAPI } from './modules/GitHubAPI.js'
 import type { NotificationManager } from './modules/NotificationManager.js'
 import type {
@@ -12,7 +12,7 @@ import type {
 import * as utils from './utils.js'
 
 export function createApiImplementations(
-  dbManager: DatabaseManager,
+  dbManager: KyselyDatabaseManager,
   githubAPI: GitHubAPI,
   notificationManager: NotificationManager,
   // mainWindow: Electron.BrowserWindow | null,
@@ -61,15 +61,15 @@ export function createApiImplementations(
 
       // Inbox management
       getInboxes: async (): Promise<Inbox[]> => {
-        return await dbManager.getInboxes()
+        return await dbManager.getInboxes() as Inbox[]
       },
 
       createInbox: async (_event: IpcMainInvokeEvent, inbox: Inbox): Promise<number> => {
-        return await dbManager.createInbox(inbox)
+        return await dbManager.createInbox(inbox as any)
       },
 
       updateInbox: async (_event: IpcMainInvokeEvent, inbox: Inbox): Promise<void> => {
-        return await dbManager.updateInbox(inbox)
+        return await dbManager.updateInbox(inbox as any)
       },
 
       deleteInbox: async (_event: IpcMainInvokeEvent, id: number): Promise<void> => {

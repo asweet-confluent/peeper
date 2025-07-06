@@ -1,19 +1,20 @@
-import type { DatabaseManager } from './DatabaseManager.js'
+import { Temporal } from '@js-temporal/polyfill';
+import type { KyselyDatabaseManager } from '../database/kysely-database-manager.js'
 import type { GitHubNotification, NotificationFetchResult, PullRequestDetails, TokenTestResult } from '../types.js'
 import { Octokit } from '@octokit/rest'
 import type { AppModule } from '../AppModule.js'
 import type { ModuleContext } from '../ModuleContext.js'
 
 export class GitHubAPI {
-  private dbManager: DatabaseManager
+  private dbManager: KyselyDatabaseManager
   private octokit: Octokit | null = null
-  private pollInterval: number = 60 // Default poll interval in seconds
+  private pollInterval: Temporal.Duration = Temporal.Duration.from('PT1M')
 
   // Cache for user profiles to avoid repeated API calls
-  private userProfileCache: Map<string, { profile: any, timestamp: number }> = new Map()
-  private readonly CACHE_EXPIRY = 30 * 60 * 1000 // 30 minutes
+  private userProfileCache: Map<string, { profile: any, timestamp: Temporal.Instant }> = new Map()
+  private readonly CACHE_EXPIRY = Temporal.Duration.from('PT30M')
 
-  constructor(dbManager: DatabaseManager) {
+  constructor(dbManager: KyselyDatabaseManager) {
     this.dbManager = dbManager
   }
 
@@ -53,7 +54,7 @@ export class GitHubAPI {
     }
   }
 
-  async fetchNotifications(useLastModified: boolean = true): Promise<NotificationFetchResult> {
+  async fetchNotifications(): Promise<NotificationFetchResult> {
     const octokit = await this.getOctokit()
 
     try {
@@ -61,12 +62,15 @@ export class GitHubAPI {
 
       // Get the last modified time if we want to use conditional requests
       let since: string | undefined
-      if (useLastModified) {
-        const lastModified = await this.dbManager.getLastModified()
-        if (lastModified) {
-          since = lastModified
-        }
+      const lastModified = await this.dbManager.getLastModified()
+      // If lastModified is available, that means we have fetched notifications before
+      // and should begin polling by setting the `if-modified-since` header.
+      // If it's not available, this is the first sync and we should set the `since` parameter
+      // to a reasonable default (e.g., 1 day ago).
+      if (!lastModified) {
+        since = Temporal.Now.instant().subtract('PT1D').toString()
       }
+
 
       // Use Octokit's paginate to fetch all notifications
       const notifications = await octokit.paginate(
@@ -76,11 +80,16 @@ export class GitHubAPI {
           participating: false,
           per_page: 500,
           ...(since && { since }),
+          headers: {
+            ...(lastModified && { 'if-modified-since': lastModified }),
+          }
         },
         (response, _done) => {
           // Update poll interval if provided (only from first response)
           if (response.headers['x-poll-interval']) {
-            this.pollInterval = Number.parseInt(response.headers['x-poll-interval'] as string)
+            this.pollInterval = Temporal.Duration.from({
+              seconds: Number.parseInt(response.headers['x-poll-interval'] as string)
+            })
           }
 
           // Save the Last-Modified header from the first response for next request
@@ -102,7 +111,6 @@ export class GitHubAPI {
       return {
         notifications: notifications as GitHubNotification[],
         notModified: false,
-        pollInterval: this.pollInterval,
       }
     }
     catch (error: any) {
@@ -152,7 +160,7 @@ export class GitHubAPI {
     }
   }
 
-  getPollInterval(): number {
+  getPollInterval(): Temporal.Duration {
     return this.pollInterval
   }
 
@@ -261,7 +269,7 @@ export class GitHubAPI {
 
     // Check cache first
     const cached = this.userProfileCache.get(username)
-    if (cached && Date.now() - cached.timestamp < this.CACHE_EXPIRY) {
+    if (cached && Temporal.Duration.compare(Temporal.Now.instant().since(cached.timestamp), this.CACHE_EXPIRY) < 0) {
       return cached.profile
     }
 
@@ -281,7 +289,7 @@ export class GitHubAPI {
       // Cache the result
       this.userProfileCache.set(username, {
         profile,
-        timestamp: Date.now(),
+        timestamp: Temporal.Now.instant(),
       })
 
       return profile

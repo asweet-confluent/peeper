@@ -1,5 +1,5 @@
 import type { BrowserWindow } from 'electron'
-import type { DatabaseManager } from './DatabaseManager.js'
+import type { KyselyDatabaseManager } from '../database/kysely-database-manager.js'
 import type { GitHubAPI } from './GitHubAPI.js'
 import type { FilterContext, FilterTemplate, GitHubNotification, Inbox, StoredNotification, SyncResult } from '../types.js'
 import * as path from 'node:path'
@@ -8,15 +8,16 @@ import { dirname } from 'node:path'
 import type { AppModule } from '../AppModule.js'
 import type { ModuleContext } from '../ModuleContext.js'
 import type { IpcBridgeApiEmitter } from '../Api.js'
+import { Temporal } from '@js-temporal/polyfill'
 
 export class NotificationManager {
-  private dbManager: DatabaseManager
+  private dbManager: KyselyDatabaseManager
   private githubAPI: GitHubAPI
   private mainWindow: BrowserWindow | null
-  private syncInterval: NodeJS.Timeout | null = null
+  private syncTimeout: NodeJS.Timeout | null = null
   // private lastNotificationCount: number = 0
   private syncInProgress: boolean = false
-  
+
   // This gets set in the IpcHandlers module.
   // TODO: Come up with a better way of structuring this.
   // Ideally it would be a required argument to the constructor, but 
@@ -24,34 +25,37 @@ export class NotificationManager {
   // constructor of createApiImplementations.
   emitterApi: IpcBridgeApiEmitter | null = null
 
-  constructor(dbManager: DatabaseManager, githubAPI: GitHubAPI, mainWindow: BrowserWindow | null) {
+  constructor(dbManager: KyselyDatabaseManager, githubAPI: GitHubAPI, mainWindow: BrowserWindow | null) {
     this.dbManager = dbManager
     this.githubAPI = githubAPI
     this.mainWindow = mainWindow
   }
-  
 
 
-  async startSync(): Promise<void> {
+
+  async startPeriodicSync(): Promise<void> {
     // Initial sync
     await this.syncNotifications()
 
-    // Set up periodic sync
-    const pollInterval = this.githubAPI.getPollInterval() * 1000 // Convert to milliseconds
-    this.syncInterval = setInterval(async () => {
-      try {
+    // We can't just use setInterval because the poll interval can change based on the 
+    // server response. So, call setTimeout recursively and always get the up-to-date
+    // poll interval from the API class.
+    const schedulePoll = (when: Temporal.Duration) => {
+      this.syncTimeout = setTimeout(async () => {
         await this.syncNotifications()
-      }
-      catch (error) {
-        console.error('Error during sync:', error)
-      }
-    }, pollInterval)
+        schedulePoll(this.githubAPI.getPollInterval())
+      }, when.milliseconds)
+    }
+
+    // Start 'er up
+    schedulePoll(this.githubAPI.getPollInterval())
+
   }
 
   stopSync(): void {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval)
-      this.syncInterval = null
+    if (this.syncTimeout) {
+      clearInterval(this.syncTimeout)
+      this.syncTimeout = null
     }
   }
 
@@ -152,7 +156,6 @@ export class NotificationManager {
       return {
         success: true,
         newCount: result.notifications.length,
-        pollInterval: result.pollInterval,
         syncTime: syncTime,
       }
     }
@@ -170,10 +173,10 @@ export class NotificationManager {
 
     for (const inbox of inboxes) {
       if (inbox.desktop_notifications) {
-        const filteredNotifications = this.filterNotifications(notifications, inbox.filter_expression)
+        const filteredNotifications = this.filterNotifications(notifications, inbox.filter_expression || 'true')
 
         if (filteredNotifications.length > 0) {
-          this.showDesktopNotification(inbox, filteredNotifications)
+          this.showDesktopNotification(inbox as any, filteredNotifications)
         }
       }
     }
@@ -207,7 +210,7 @@ export class NotificationManager {
 
     const notifications = await this.dbManager.getNotifications()
 
-    const filtered = this.filterStoredNotifications(notifications, inbox.filter_expression)
+    const filtered = this.filterStoredNotifications(notifications, inbox.filter_expression || 'true')
 
     return filtered
   }
@@ -309,7 +312,7 @@ export class NotificationManager {
 
   private evaluateFilterForStoredNotification(notification: StoredNotification, expression: string): boolean {
     // Parse JSON fields for arrays
-    const parseJsonArray = (jsonStr: string | undefined): string[] => {
+    const parseJsonArray = (jsonStr: string | null | undefined): string[] => {
       if (!jsonStr)
         return []
       try {

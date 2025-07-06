@@ -1,3 +1,5 @@
+import { toTemporalInstant } from '@js-temporal/polyfill';
+
 export interface GitHubNotification {
   id: string
   unread: boolean
@@ -110,27 +112,27 @@ export interface StoredNotification {
   created_at: string
   synced_at: string
   // Pull Request fields (only populated for PR notifications)
-  pr_number?: number
-  pr_author?: string
-  pr_state?: string
-  pr_merged?: number // SQLite boolean
-  pr_draft?: number // SQLite boolean
-  pr_assignees?: string // JSON array of usernames
-  pr_requested_reviewers?: string // JSON array of usernames
-  pr_requested_teams?: string // JSON array of team names
-  pr_labels?: string // JSON array of label names
-  pr_head_ref?: string
-  pr_base_ref?: string
-  pr_head_repo?: string // full_name
-  pr_base_repo?: string // full_name
-  current_user_is_reviewer?: number // SQLite boolean
-  current_user_team_is_reviewer?: number // SQLite boolean
+  pr_number: number | null
+  pr_author: string | null
+  pr_state: string | null
+  pr_merged: number | null // SQLite boolean
+  pr_draft: number | null // SQLite boolean
+  pr_assignees: string | null // JSON array of usernames
+  pr_requested_reviewers: string | null // JSON array of usernames
+  pr_requested_teams: string | null // JSON array of team names
+  pr_labels: string | null // JSON array of label names
+  pr_head_ref: string | null
+  pr_base_ref: string | null
+  pr_head_repo: string | null // full_name
+  pr_base_repo: string | null // full_name
+  current_user_is_reviewer: number | null // SQLite boolean
+  current_user_team_is_reviewer: number | null // SQLite boolean
 }
 
 export interface Inbox {
   id?: number
   name: string
-  filter_expression: string
+  filter_expression: string | null
   desktop_notifications: number | boolean // SQLite stores booleans as integers
   created_at?: string
   updated_at?: string
@@ -140,7 +142,6 @@ export interface SyncResult {
   success: boolean
   syncTime?: string // ISO string
   newCount?: number
-  pollInterval?: number
   error?: string
 }
 
@@ -153,7 +154,6 @@ export interface TokenTestResult {
 export interface NotificationFetchResult {
   notifications: GitHubNotification[]
   notModified: boolean
-  pollInterval?: number
 }
 
 export interface FilterContext {
@@ -201,3 +201,12 @@ export interface Preferences {
   showDesktopNotifications: boolean
   soundEnabled: boolean
 }
+
+declare global {
+  interface Date {
+    toTemporalInstant: typeof toTemporalInstant
+  }
+}
+
+Date.prototype.toTemporalInstant = toTemporalInstant;
+

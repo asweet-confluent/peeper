@@ -1,7 +1,7 @@
 import type { AppInitConfig } from './AppInitConfig.js'
 import { createModuleRunner } from './ModuleRunner.js'
 import { terminateAppOnLastWindowClose } from './modules/ApplicationTerminatorOnLastWindowClose.js'
-import { withDatabaseManager } from './modules/DatabaseManager.js'
+import { withKyselyDatabaseManager } from './database/kysely-database-manager.js'
 import { withDevTools } from './modules/DevTools.js'
 import { withGitHubAPI } from './modules/GitHubAPI.js'
 import { setupIpcHandlers } from './modules/IpcHandlers.js'
@@ -14,7 +14,7 @@ export async function initApp(initConfig: AppInitConfig) {
   await moduleRunner.init(createWindowManagerModule({ initConfig, openDevTools: false }))
   await moduleRunner.init(disallowMultipleAppInstance())
   await moduleRunner.init(terminateAppOnLastWindowClose())
-  await moduleRunner.init(withDatabaseManager())
+  await moduleRunner.init(withKyselyDatabaseManager())
   await moduleRunner.init(withGitHubAPI())
   await moduleRunner.init(withNotificationManager())
   await moduleRunner.init(setupIpcHandlers())

@@ -1,4 +1,4 @@
-import { DatabaseManager } from './modules/DatabaseManager.js'
+import { KyselyDatabaseManager } from './database/kysely-database-manager.js'
 import { GitHubAPI } from './modules/GitHubAPI.js'
 import { NotificationManager } from './modules/NotificationManager.js'
 
@@ -7,6 +7,6 @@ export interface ModuleContext {
   mainWindow?: Electron.BrowserWindow
   githubAPI?: GitHubAPI
   notificationManager?: NotificationManager
-  dbManager?: DatabaseManager
+  dbManager?: KyselyDatabaseManager
   loadWindowContent?: () => Promise<void>
 }
