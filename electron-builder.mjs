@@ -5,14 +5,107 @@ import {pathToFileURL} from 'node:url';
 
 export default /** @type import('electron-builder').Configuration */
 ({
+  appId: 'com.asweet.peeper',
+  productName: 'Peeper',
   directories: {
     output: 'dist',
     buildResources: 'buildResources',
   },
-  generateUpdatesFilesForAllChannels: true,
-  linux: {
-    target: ['deb'],
+  
+  // Windows configuration
+  win: {
+    target: [
+      {
+        target: 'nsis',
+        arch: ['x64', 'ia32']
+      },
+      {
+        target: 'portable',
+        arch: ['x64']
+      }
+    ],
+    icon: 'buildResources/icon.ico'
   },
+  
+  // macOS configuration
+  mac: {
+    target: [
+      {
+        target: 'dmg',
+        arch: ['x64', 'arm64']
+      },
+      {
+        target: 'zip',
+        arch: ['x64', 'arm64']
+      }
+    ],
+    icon: 'buildResources/icon.icns',
+    category: 'public.app-category.productivity'
+  },
+  
+  // Linux configuration
+  linux: {
+    target: [
+      {
+        target: 'deb',
+        arch: ['x64']
+      },
+      {
+        target: 'AppImage',
+        arch: ['x64']
+      },
+      {
+        target: 'tar.gz',
+        arch: ['x64']
+      }
+    ],
+    icon: 'buildResources/icons/',
+    category: 'Development'
+  },
+  
+  // NSIS installer configuration for Windows
+  nsis: {
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+    shortcutName: 'Peeper'
+  },
+  
+  // DMG configuration for macOS
+  dmg: {
+    title: '${productName} ${version}',
+    icon: 'buildResources/icon.icns',
+    background: 'buildResources/dmg-background.png',
+    window: {
+      width: 540,
+      height: 380
+    },
+    contents: [
+      {
+        x: 410,
+        y: 190,
+        type: 'link',
+        path: '/Applications'
+      },
+      {
+        x: 130,
+        y: 190,
+        type: 'file'
+      }
+    ]
+  },
+  
+  // Auto-updater configuration
+  publish: {
+    provider: 'github',
+    owner: 'asweet-confluent',
+    repo: 'peeper'
+  },
+  
+  // Auto-updater support (generates metadata files)
+  generateUpdatesFilesForAllChannels: true,
+  
   /**
    * It is recommended to avoid using non-standard characters such as spaces in artifact names,
    * as they can unpredictably change during deployment, making them impossible to locate and download for update.

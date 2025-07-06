@@ -73,6 +73,40 @@ peeper/
    npm start
    ```
 
+## 📦 Installation
+
+### Pre-built Releases
+
+Download the latest release for your platform:
+
+- **Windows**: Download the `.exe` installer from [Releases](../../releases/latest)
+- **macOS**: Download the `.dmg` file from [Releases](../../releases/latest)
+- **Linux**: Download the `.deb` package or `.AppImage` from [Releases](../../releases/latest)
+
+### Installation Instructions
+
+#### Windows
+1. Download the `.exe` file
+2. Run the installer and follow the setup wizard
+
+#### macOS
+1. Download the `.dmg` file
+2. Open the DMG and drag the app to your Applications folder
+
+#### Linux
+**For .deb (Debian/Ubuntu):**
+```bash
+sudo dpkg -i peeper-*.deb
+# If there are dependency issues:
+sudo apt-get install -f
+```
+
+**For .AppImage:**
+```bash
+chmod +x peeper-*.AppImage
+./peeper-*.AppImage
+```
+
 ## 🔧 Development
 
 ### Available Scripts
@@ -81,6 +115,41 @@ peeper/
 - `npm run watch` - Watch mode for TypeScript compilation
 - `npm start` - Build and start the application
 - `npm run dev` - Build and start in development mode
+- `npm run compile` - Build and package the Electron app
+- `npm run compile:win` - Build for Windows (cross-platform)
+- `npm run compile:mac` - Build for macOS (requires macOS)
+- `npm run compile:linux` - Build for Linux (cross-platform)
+- `npm run dist:all` - Build for all platforms
+- `npm run prepare-release` - Prepare a new release
+
+### Building and Releasing
+
+This project includes automated CI/CD with GitHub Actions:
+
+#### Automated Releases
+1. **Prepare a release:**
+   ```bash
+   npm run prepare-release 1.0.1
+   ```
+
+2. **Push to trigger build:**
+   ```bash
+   git push origin main
+   git push origin v1.0.1
+   ```
+
+3. **Monitor:** GitHub Actions will automatically build for all platforms and create a release.
+
+#### Manual Build Testing
+Test builds locally before releasing:
+```bash
+npm run build              # Test TypeScript compilation
+npm run compile            # Test Electron packaging
+npm run compile:win        # Test Windows build
+npm run compile:linux      # Test Linux build
+```
+
+For detailed CI/CD information, see [GitHub Actions Setup](.github/README.md).
 
 ### VS Code Tasks
 

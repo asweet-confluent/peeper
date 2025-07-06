@@ -213,7 +213,7 @@ export class NotificationManager {
     const notification = new Notification({
       title,
       body: body + (count > 3 ? `\n... and ${count - 3} more` : ''),
-      icon: path.join(__dirname, '..', 'assets', 'icon.png'),
+      icon: path.join(__dirname, '..', 'buildResources/icons', 'icon.png'),
     })
 
     notification.on('click', () => {

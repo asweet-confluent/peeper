@@ -10,6 +10,12 @@
     "build": "npm run build --workspaces --if-present",
     "build:dev": "npm run build --workspaces --if-present",
     "compile": "npm run build && electron-builder build --config electron-builder.mjs",
+    "compile:win": "npm run build && electron-builder build --win --config electron-builder.mjs",
+    "compile:mac": "npm run build && electron-builder build --mac --config electron-builder.mjs",
+    "compile:linux": "npm run build && electron-builder build --linux --config electron-builder.mjs",
+    "dist": "npm run compile",
+    "dist:all": "npm run build && electron-builder build --win --mac --linux --config electron-builder.mjs",
+    "release": "npm run build && electron-builder build --publish=always --config electron-builder.mjs",
     "test": "npx playwright test ./tests/e2e.spec.ts",
     "start": "node packages/dev-mode.js",
     "dev": "npm run start",
@@ -19,7 +25,9 @@
     "packages/*"
   ],
   "dependencies": {
-    "@app/main": "*"
+    "@app/main": "*",
+    "electron-updater": "^6.6.5",
+    "electron-log": "^5.2.0"
   },
   "devDependencies": {
     "@electron-toolkit/preload": "^3.0.2",
