@@ -82,6 +82,18 @@ export function createApiImplementations(
         return await notificationManager.getFilteredNotificationsPaginated(inboxId, page, pageSize)
       },
 
+      validateFilterExpression: async (_event: IpcMainInvokeEvent, filterExpression: string): Promise<{ valid: boolean, error?: string }> => {
+        try {
+          const valid = notificationManager.validateFilterExpression(filterExpression)
+          return { valid }
+        } catch (error) {
+          return { 
+            valid: false, 
+            error: error instanceof Error ? error.message : String(error)
+          }
+        }
+      },
+
       // Username autocompletion
       searchUsers: async (_event: IpcMainInvokeEvent, query: string, limit?: number): Promise<string[]> => {
         return await githubAPI.searchUsers(query, limit)

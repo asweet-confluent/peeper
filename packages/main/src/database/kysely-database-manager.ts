@@ -8,6 +8,7 @@ import { app } from 'electron'
 import type { AppModule } from '../AppModule.js'
 import type { ModuleContext } from '../ModuleContext.js'
 import { Temporal } from '@js-temporal/polyfill'
+import { filterService } from './filter-service.js'
 
 // Common interfaces for database operations
 interface InboxRecord {
@@ -406,6 +407,56 @@ export class KyselyDatabaseManager {
     const notifications = await this.db
       .selectFrom('notifications')
       .selectAll()
+      .orderBy('updated_at', 'desc')
+      .limit(pageSize)
+      .offset(offset)
+      .execute()
+
+    return {
+      notifications,
+      totalCount,
+      hasMore
+    }
+  }
+
+  async getFilteredNotificationsPaginated(
+    filterExpression: string, 
+    page: number = 0, 
+    pageSize: number = 50
+  ): Promise<{ notifications: StoredNotification[], totalCount: number, hasMore: boolean }> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    // Create base query
+    let query = this.db
+      .selectFrom('notifications')
+      .selectAll()
+
+    // Apply filter expression if provided
+    if (filterExpression && filterExpression.trim() !== '' && filterExpression.trim() !== 'true') {
+      try {
+        query = filterService.applyFilterExpression(query, filterExpression)
+      } catch (error) {
+        console.error('Filter application error:', error)
+        throw new Error(`Invalid filter expression: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+
+    // Get total count with filter applied
+    const countQuery = query
+      .clearSelect()
+      .select(sql<number>`count(*)`.as('total'))
+    
+    const countResult = await countQuery.executeTakeFirst()
+    const totalCount = countResult?.total || 0
+    
+    // Calculate pagination
+    const offset = page * pageSize
+    const hasMore = offset + pageSize < totalCount
+
+    // Get paginated notifications with filter applied
+    const notifications = await query
       .orderBy('updated_at', 'desc')
       .limit(pageSize)
       .offset(offset)

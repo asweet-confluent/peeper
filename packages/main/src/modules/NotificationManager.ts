@@ -10,6 +10,7 @@ import type { AppModule } from '../AppModule.js'
 import type { ModuleContext } from '../ModuleContext.js'
 import type { IpcBridgeApiEmitter } from '../Api.js'
 import { Temporal } from '@js-temporal/polyfill'
+import { filterService } from '../database/filter-service.js'
 
 export class NotificationManager {
   private dbManager: KyselyDatabaseManager
@@ -172,6 +173,8 @@ export class NotificationManager {
 
     for (const inbox of inboxes) {
       if (inbox.desktop_notifications) {
+        // For desktop notifications, use simplified filtering since it's not performance-critical
+        // and we're dealing with GitHub API notifications, not stored ones
         const filteredNotifications = this.filterNotifications(notifications, inbox.filter_expression || 'true')
 
         if (filteredNotifications.length > 0) {
@@ -209,26 +212,16 @@ export class NotificationManager {
       throw new Error('Inbox not found')
     }
 
-    // For filtered notifications, we need to get all notifications first, 
-    // then apply the filter, then paginate the result
-    // This could be optimized in the future by applying filters at the database level
-    const allResult = await this.dbManager.getNotificationsPaginated(0, 10000)
-    const allNotifications = allResult.notifications
-    const filtered = this.filterStoredNotifications(allNotifications, inbox.filter_expression || 'true')
-    
-    const totalCount = filtered.length
-    const offset = page * pageSize
-    const hasMore = offset + pageSize < totalCount
-    
-    const paginatedNotifications = filtered.slice(offset, offset + pageSize)
-
-    return {
-      notifications: paginatedNotifications,
-      totalCount,
-      hasMore
-    }
+    // Use database-level filtering for improved performance
+    return await this.dbManager.getFilteredNotificationsPaginated(
+      inbox.filter_expression || 'true', 
+      page, 
+      pageSize
+    )
   }
 
+  // Legacy filtering methods - only used for desktop notifications with GitHub API notifications
+  // Main inbox filtering now uses database-level filtering for better performance
   private filterNotifications(notifications: GitHubNotification[], filterExpression: string): GitHubNotification[] {
     if (!filterExpression || filterExpression.trim() === 'true') {
       return notifications
@@ -238,24 +231,6 @@ export class NotificationManager {
       return notifications.filter((notification) => {
         return this.evaluateFilterForGitHubNotification(notification, filterExpression)
       })
-    }
-    catch (error) {
-      console.error('Error applying filter:', error)
-      return notifications // Return all notifications if filter fails
-    }
-  }
-
-  private filterStoredNotifications(notifications: StoredNotification[], filterExpression: string): StoredNotification[] {
-    if (!filterExpression || filterExpression.trim() === 'true') {
-      return notifications
-    }
-
-    try {
-      const filtered = notifications.filter((notification) => {
-        const matches = this.evaluateFilterForStoredNotification(notification, filterExpression)
-        return matches
-      })
-      return filtered
     }
     catch (error) {
       console.error('Error applying filter:', error)
@@ -290,79 +265,6 @@ export class NotificationManager {
       pr_base_repo: undefined,
       current_user_is_reviewer: undefined,
       current_user_team_is_reviewer: undefined,
-
-      contains: (field: string, value: string) => {
-        return (field || '').toLowerCase().includes((value || '').toLowerCase())
-      },
-
-      equals: (field: string, value: string) => {
-        return field === value
-      },
-
-      startsWith: (field: string, value: string) => {
-        return (field || '').toLowerCase().startsWith((value || '').toLowerCase())
-      },
-
-      endsWith: (field: string, value: string) => {
-        return (field || '').toLowerCase().endsWith((value || '').toLowerCase())
-      },
-
-      matches: (field: string, regex: string) => {
-        try {
-          return new RegExp(regex, 'i').test(field || '')
-        }
-        catch {
-          return false
-        }
-      },
-
-      includes: (array: string[], value: string) => {
-        return array ? array.includes(value) : false
-      },
-    }
-
-    return this.evaluateFilter(context, expression)
-  }
-
-  private evaluateFilterForStoredNotification(notification: StoredNotification, expression: string): boolean {
-    // Parse JSON fields for arrays
-    const parseJsonArray = (jsonStr: string | null | undefined): string[] => {
-      if (!jsonStr)
-        return []
-      try {
-        return JSON.parse(jsonStr)
-      }
-      catch {
-        return []
-      }
-    }
-
-    const context: FilterContext = {
-      id: notification.id,
-      subject_title: notification.subject_title || '',
-      subject_type: notification.subject_type || '',
-      repository_name: notification.repository_name || '',
-      repository_full_name: notification.repository_full_name || '',
-      repository_owner: notification.repository_owner || '',
-      reason: notification.reason || '',
-      unread: Boolean(notification.unread),
-      updated_at: notification.updated_at || '',
-      // PR fields with safe defaults for null/undefined values
-      pr_number: notification.pr_number || undefined,
-      pr_author: notification.pr_author || '',
-      pr_state: notification.pr_state || '',
-      pr_merged: Boolean(notification.pr_merged),
-      pr_draft: Boolean(notification.pr_draft),
-      pr_assignees: parseJsonArray(notification.pr_assignees),
-      pr_requested_reviewers: parseJsonArray(notification.pr_requested_reviewers),
-      pr_requested_teams: parseJsonArray(notification.pr_requested_teams),
-      pr_labels: parseJsonArray(notification.pr_labels),
-      pr_head_ref: notification.pr_head_ref || '',
-      pr_base_ref: notification.pr_base_ref || '',
-      pr_head_repo: notification.pr_head_repo || '',
-      pr_base_repo: notification.pr_base_repo || '',
-      current_user_is_reviewer: Boolean(notification.current_user_is_reviewer),
-      current_user_team_is_reviewer: Boolean(notification.current_user_team_is_reviewer),
 
       contains: (field: string, value: string) => {
         return (field || '').toLowerCase().includes((value || '').toLowerCase())
@@ -516,6 +418,13 @@ export class NotificationManager {
         expression: 'subject_type === "PullRequest" AND pr_draft',
       },
     ]
+  }
+
+  /**
+   * Validate a filter expression using the new grammar-based parser
+   */
+  validateFilterExpression(filterExpression: string): boolean {
+    return filterService.validateFilterExpression(filterExpression)
   }
 }
 
