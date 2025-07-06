@@ -46,6 +46,7 @@ export interface NotificationTable {
   pr_base_repo: string | null // full_name
   current_user_is_reviewer: number | null // SQLite boolean
   current_user_team_is_reviewer: number | null // SQLite boolean
+  done: number | null // SQLite boolean for marking items as "done"
 }
 
 export interface InboxTable {
@@ -63,6 +64,7 @@ export interface QuickFilterConfigTable {
   hide_read: number // SQLite stores booleans as integers  
   hide_merged_prs: number // SQLite stores booleans as integers
   hide_drafts: number // SQLite stores booleans as integers
+  hide_done: number // SQLite stores booleans as integers
   created_at: ColumnType<string, string | undefined, never>
   updated_at: ColumnType<string, string | undefined, string>
 }

@@ -61,6 +61,14 @@ export function createApiImplementations(
         return await githubAPI.markAsRead(notificationId)
       },
 
+      markAsUnread: async (_event: IpcMainInvokeEvent, notificationId: string): Promise<boolean> => {
+        return await githubAPI.markAsUnread(notificationId)
+      },
+
+      markAsDone: async (_event: IpcMainInvokeEvent, notificationId: string): Promise<boolean> => {
+        return await githubAPI.markAsDone(notificationId)
+      },
+
       // Inbox management
       getInboxes: async (): Promise<Inbox[]> => {
         return await dbManager.getInboxes() as Inbox[]

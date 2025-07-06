@@ -35,6 +35,7 @@ export interface StoredNotification {
   pr_base_repo: string | null // full_name
   current_user_is_reviewer: number | null // SQLite boolean
   current_user_team_is_reviewer: number | null // SQLite boolean
+  done: number | null // SQLite boolean for marking items as "done"
 }
 
 export interface Inbox {
@@ -52,6 +53,7 @@ export interface QuickFilterConfig {
   hide_read: boolean | number
   hide_merged_prs: boolean | number
   hide_drafts: boolean | number
+  hide_done: boolean | number
   created_at?: string
   updated_at?: string
 }

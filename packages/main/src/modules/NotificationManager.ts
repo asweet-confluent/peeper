@@ -272,6 +272,7 @@ export class NotificationManager {
       reason: notification.reason || '',
       unread: Boolean(notification.unread),
       updated_at: notification.updated_at || '',
+      done: false, // GitHub notifications are never "done" by default
       // PR fields - not available for GitHubNotification
       pr_number: undefined,
       pr_author: undefined,
@@ -333,6 +334,7 @@ export class NotificationManager {
       .replace(/\breason\b/g, 'context.reason')
       .replace(/\bunread\b/g, 'context.unread')
       .replace(/\bupdated_at\b/g, 'context.updated_at')
+      .replace(/\bdone\b/g, 'context.done')
       // PR field replacements
       .replace(/\bpr_number\b/g, 'context.pr_number')
       .replace(/\bpr_author\b/g, 'context.pr_author')
@@ -439,6 +441,14 @@ export class NotificationManager {
       {
         name: 'Draft PRs',
         expression: 'subject_type === "PullRequest" AND pr_draft',
+      },
+      {
+        name: 'Done Items',
+        expression: 'done === true',
+      },
+      {
+        name: 'Not Done Items',
+        expression: 'done !== true',
       },
     ]
   }

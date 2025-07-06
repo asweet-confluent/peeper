@@ -25,6 +25,8 @@ interface NotificationItemProps {
     escapeHtml: (text: string) => string
     handleNotificationClick: (url: string, notificationId: string, isUnread: boolean) => void
     handleMarkAsReadClick: (e: React.MouseEvent, notificationId: string) => void
+    handleMarkAsUnreadClick: (e: React.MouseEvent, notificationId: string) => void
+    handleMarkAsDoneClick: (e: React.MouseEvent, notificationId: string) => void
     setItemHeight: (index: number, height: number) => void
   }
 }
@@ -142,6 +144,8 @@ const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, 
     escapeHtml, 
     handleNotificationClick, 
     handleMarkAsReadClick,
+    handleMarkAsUnreadClick,
+    handleMarkAsDoneClick,
     setItemHeight
   } = data
   
@@ -191,6 +195,7 @@ const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, 
               className="notification-title"
               onClick={(e) => {
                 e.preventDefault()
+                const url = `https://github.com/`
                 handleNotificationClick(notification.subject_url || '#', notification.id, !!notification.unread)
               }}
             >
@@ -225,15 +230,21 @@ const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, 
                 Mark as Read
               </button>
             )}
+            {!notification.unread && (
+              <button
+                type="button"
+                className="action-btn"
+                onClick={e => handleMarkAsUnreadClick(e, notification.id)}
+              >
+                Mark as Unread
+              </button>
+            )}
             <button
               type="button"
               className="action-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleNotificationClick(notification.subject_url || '#', notification.id, false)
-              }}
+              onClick={e => handleMarkAsDoneClick(e, notification.id)}
             >
-              View
+              Mark as Done
             </button>
           </div>
           <AuthorSection notification={notification} />
@@ -388,6 +399,54 @@ const NotificationList: React.FC<NotificationListProps> = ({
     onMarkAsRead(notificationId)
   }, [onMarkAsRead])
 
+  const handleMarkAsUnreadClick = useCallback(async (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation()
+    try {
+      const success = await window.api.invoke.markAsUnread(notificationId)
+      if (success) {
+        // Refresh the list to show updated read status
+        setAllNotifications([])
+        setCurrentPage(0)
+        setHasMore(true)
+        setIsLoading(false)
+        loadingRef.current = false
+        itemHeights.current.clear()
+        if (listRef.current) {
+          listRef.current.resetAfterIndex(0)
+        }
+        loadNotifications(0, true)
+      } else {
+        console.error('Failed to mark notification as unread')
+      }
+    } catch (error) {
+      console.error('Error marking as unread:', error)
+    }
+  }, [loadNotifications])
+
+  const handleMarkAsDoneClick = useCallback(async (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation()
+    try {
+      const success = await window.api.invoke.markAsDone(notificationId)
+      if (success) {
+        // Refresh the list to reflect changes based on current filters
+        setAllNotifications([])
+        setCurrentPage(0)
+        setHasMore(true)
+        setIsLoading(false)
+        loadingRef.current = false
+        itemHeights.current.clear()
+        if (listRef.current) {
+          listRef.current.resetAfterIndex(0)
+        }
+        loadNotifications(0, true)
+      } else {
+        console.error('Failed to mark notification as done')
+      }
+    } catch (error) {
+      console.error('Error marking as done:', error)
+    }
+  }, [loadNotifications])
+
   // Function to check if an item is loaded
   const isItemLoaded = useCallback((index: number) => {
     return index < displayNotifications.length
@@ -409,8 +468,10 @@ const NotificationList: React.FC<NotificationListProps> = ({
     escapeHtml,
     handleNotificationClick,
     handleMarkAsReadClick,
+    handleMarkAsUnreadClick,
+    handleMarkAsDoneClick,
     setItemHeight
-  }), [displayNotifications, onMarkAsRead, formatDate, escapeHtml, handleNotificationClick, handleMarkAsReadClick, setItemHeight])
+  }), [displayNotifications, onMarkAsRead, formatDate, escapeHtml, handleNotificationClick, handleMarkAsReadClick, handleMarkAsUnreadClick, handleMarkAsDoneClick, setItemHeight])
 
   if (displayNotifications.length === 0 && !isLoading) {
     return (

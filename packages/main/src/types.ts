@@ -127,6 +127,7 @@ export interface StoredNotification {
   pr_base_repo: string | null // full_name
   current_user_is_reviewer: number | null // SQLite boolean
   current_user_team_is_reviewer: number | null // SQLite boolean
+  done: number | null // SQLite boolean for marking items as "done"
 }
 
 export interface Inbox {
@@ -172,6 +173,7 @@ export interface FilterContext {
   reason: string
   unread: boolean
   updated_at: string
+  done?: boolean
   // Pull Request fields
   pr_number?: number
   pr_author?: string

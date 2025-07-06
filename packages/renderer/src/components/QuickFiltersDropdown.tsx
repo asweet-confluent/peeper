@@ -60,6 +60,7 @@ const QuickFiltersDropdown: React.FC<QuickFiltersDropdownProps> = ({ inboxId, on
         hide_read: typeof newConfig.hide_read === 'boolean' ? (newConfig.hide_read ? 1 : 0) : newConfig.hide_read,
         hide_merged_prs: typeof newConfig.hide_merged_prs === 'boolean' ? (newConfig.hide_merged_prs ? 1 : 0) : newConfig.hide_merged_prs,
         hide_drafts: typeof newConfig.hide_drafts === 'boolean' ? (newConfig.hide_drafts ? 1 : 0) : newConfig.hide_drafts,
+        hide_done: typeof newConfig.hide_done === 'boolean' ? (newConfig.hide_done ? 1 : 0) : newConfig.hide_done,
       }
       
       await window.api.invoke.updateQuickFilterConfig(inboxId, sqliteConfig)
@@ -84,6 +85,11 @@ const QuickFiltersDropdown: React.FC<QuickFiltersDropdownProps> = ({ inboxId, on
   const toggleHideDrafts = () => {
     const newValue = !getBooleanValue(config?.hide_drafts)
     updateConfig({ hide_drafts: newValue })
+  }
+
+  const toggleHideDone = () => {
+    const newValue = !getBooleanValue(config?.hide_done)
+    updateConfig({ hide_done: newValue })
   }
 
   const getBooleanValue = (value: boolean | number | undefined): boolean => {
@@ -148,6 +154,28 @@ const QuickFiltersDropdown: React.FC<QuickFiltersDropdownProps> = ({ inboxId, on
             />
             <span className="checkmark"></span>
             Hide drafts
+          </label>
+
+          <label className="quick-filter-option">
+            <input
+              type="checkbox"
+              checked={getBooleanValue(config.hide_done)}
+              onChange={toggleHideDone}
+              disabled={loading}
+            />
+            <span className="checkmark"></span>
+            Hide done items
+          </label>
+
+          <label className="quick-filter-option">
+            <input
+              type="checkbox"
+              checked={getBooleanValue(config.hide_done)}
+              onChange={toggleHideDone}
+              disabled={loading}
+            />
+            <span className="checkmark"></span>
+            Hide done notifications
           </label>
         </div>
       )}

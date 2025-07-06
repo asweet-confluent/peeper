@@ -149,9 +149,10 @@ export class KyselyDatabaseManager {
       .ifNotExists()
       .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
       .addColumn('inbox_id', 'integer', (col) => col.notNull().references('inboxes.id').onDelete('cascade'))
-      .addColumn('hide_read', 'integer', (col) => col.defaultTo(1).notNull())
+      .addColumn('hide_read', 'integer', (col) => col.defaultTo(0).notNull())
       .addColumn('hide_merged_prs', 'integer', (col) => col.defaultTo(1).notNull())
       .addColumn('hide_drafts', 'integer', (col) => col.defaultTo(1).notNull())
+      .addColumn('hide_done', 'integer', (col) => col.defaultTo(1).notNull())
       .addColumn('created_at', 'text', (col) => col.defaultTo('CURRENT_TIMESTAMP').notNull())
       .addColumn('updated_at', 'text', (col) => col.defaultTo('CURRENT_TIMESTAMP').notNull())
       .execute()
@@ -465,6 +466,12 @@ export class KyselyDatabaseManager {
           eb('pr_draft', '!=', 1)
         ]))
       }
+      if (quickFilterConfig.hide_done) {
+        query = query.where((eb) => eb.or([
+          eb('done', 'is', null),
+          eb('done', '!=', 1)
+        ]))
+      }
     }
 
     // Apply filter expression if provided
@@ -525,6 +532,30 @@ export class KyselyDatabaseManager {
     await this.db
       .updateTable('notifications')
       .set({ unread: 0 })
+      .where('id', '=', notificationId)
+      .execute()
+  }
+
+  async markAsUnread(notificationId: string): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    await this.db
+      .updateTable('notifications')
+      .set({ unread: 1 })
+      .where('id', '=', notificationId)
+      .execute()
+  }
+
+  async markAsDone(notificationId: string): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    await this.db
+      .updateTable('notifications')
+      .set({ done: 1 })
       .where('id', '=', notificationId)
       .execute()
   }
@@ -632,6 +663,7 @@ export class KyselyDatabaseManager {
         hide_read: typeof config.hide_read === 'boolean' ? (config.hide_read ? 1 : 0) : config.hide_read,
         hide_merged_prs: typeof config.hide_merged_prs === 'boolean' ? (config.hide_merged_prs ? 1 : 0) : config.hide_merged_prs,
         hide_drafts: typeof config.hide_drafts === 'boolean' ? (config.hide_drafts ? 1 : 0) : config.hide_drafts,
+        hide_done: typeof config.hide_done === 'boolean' ? (config.hide_done ? 1 : 0) : config.hide_done,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -652,6 +684,7 @@ export class KyselyDatabaseManager {
         hide_read: typeof config.hide_read === 'boolean' ? (config.hide_read ? 1 : 0) : config.hide_read,
         hide_merged_prs: typeof config.hide_merged_prs === 'boolean' ? (config.hide_merged_prs ? 1 : 0) : config.hide_merged_prs,
         hide_drafts: typeof config.hide_drafts === 'boolean' ? (config.hide_drafts ? 1 : 0) : config.hide_drafts,
+        hide_done: typeof config.hide_done === 'boolean' ? (config.hide_done ? 1 : 0) : config.hide_done,
         updated_at: new Date().toISOString(),
       })
       .where('inbox_id', '=', inboxId)
@@ -669,9 +702,10 @@ export class KyselyDatabaseManager {
       // Create default quick filter config
       const configId = await this.createQuickFilterConfig({
         inbox_id: inboxId,
-        hide_read: 1, // Default to true
+        hide_read: 0, // Default to false - show read notifications
         hide_merged_prs: 1, // Default to true  
         hide_drafts: 1, // Default to true
+        hide_done: 1, // Default to true
       })
       
       config = await this.getQuickFilterConfig(inboxId)
@@ -735,6 +769,41 @@ export class KyselyDatabaseManager {
         }
       }
 
+      // Check if done column exists by trying to select it
+      try {
+        await this.db
+          .selectFrom('notifications')
+          .select('done')
+          .limit(1)
+          .execute()
+        // If no error, column exists
+      } catch (error) {
+        // Column doesn't exist, add it
+        console.log('Adding done column to notifications table...')
+        try {
+          await sql`ALTER TABLE notifications ADD COLUMN done INTEGER DEFAULT 0`.execute(this.db)
+        } catch (columnError) {
+          console.warn('Failed to add done column:', columnError)
+        }
+      }
+
+      // Check if hide_done column exists in quick_filter_configs
+      try {
+        await this.db
+          .selectFrom('quick_filter_configs')
+          .select('hide_done')
+          .limit(1)
+          .execute()
+        // If no error, column exists
+      } catch (error) {
+        // Column doesn't exist, add it
+        console.log('Adding hide_done column to quick_filter_configs table...')
+        try {
+          await sql`ALTER TABLE quick_filter_configs ADD COLUMN hide_done INTEGER DEFAULT 1`.execute(this.db)
+        } catch (columnError) {
+          console.warn('Failed to add hide_done column:', columnError)
+        }
+      }
 
       // Check if user_profiles table exists and create it if it doesn't
       await this.createUserProfilesTableIfNotExists()

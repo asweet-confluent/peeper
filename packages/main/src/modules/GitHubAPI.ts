@@ -138,6 +138,49 @@ export class GitHubAPI {
     }
   }
 
+  async markAsUnread(notificationId: string): Promise<boolean> {
+    const octokit = await this.getOctokit()
+
+    try {
+      // GitHub API doesn't have a direct "mark as unread" endpoint
+      // We can achieve this by marking the thread as unread using the subscription endpoint
+      await octokit.rest.activity.setThreadSubscription({
+        thread_id: Number.parseInt(notificationId, 10),
+        subscribed: true,
+        ignored: false,
+      })
+
+      // Update local database only after successful API call
+      await this.dbManager.markAsUnread(notificationId)
+      return true
+    }
+    catch (error: any) {
+      console.error('Error marking notification as unread:', error)
+      throw new Error(`Error marking as unread: ${error.message}`)
+    }
+  }
+
+  async markAsDone(notificationId: string): Promise<boolean> {
+    const octokit = await this.getOctokit()
+
+    try {
+      // For "done" status, we'll mark it as read on GitHub since there's no "done" concept there
+      // but track "done" status locally in our database
+      await octokit.rest.activity.markThreadAsRead({
+        thread_id: Number.parseInt(notificationId, 10),
+      })
+
+      // Update local database with both read and done status
+      await this.dbManager.markAsRead(notificationId)
+      await this.dbManager.markAsDone(notificationId)
+      return true
+    }
+    catch (error: any) {
+      console.error('Error marking notification as done:', error)
+      throw new Error(`Error marking as done: ${error.message}`)
+    }
+  }
+
   async markAllAsRead(_repositoryFullName?: string): Promise<boolean> {
     const octokit = await this.getOctokit()
 

@@ -60,7 +60,10 @@ const MainApp: React.FC = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await window.api.invoke.markAsRead(notificationId)
+      const success = await window.api.invoke.markAsRead(notificationId)
+      if (!success) {
+        console.error('Failed to mark notification as read')
+      }
     }
     catch (error) {
       console.error('Error marking as read:', error)
