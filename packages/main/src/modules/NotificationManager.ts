@@ -36,35 +36,54 @@ export class NotificationManager {
 
 
   async startPeriodicSync(): Promise<void> {
+    // Get user preferences for sync interval
+    const preferences = await this.dbManager.getPreferences()
+    if (!preferences.autoSyncEnabled) {
+      console.log('Auto-sync is disabled, not starting periodic sync')
+      return
+    }
+
+    console.log(`Starting periodic sync with ${preferences.autoSyncIntervalSeconds}s interval`)
+    
     // Initial sync
     await this.syncNotifications()
 
-    // We can't just use setInterval because the poll interval can change based on the 
-    // server response. So, call setTimeout recursively and always get the up-to-date
-    // poll interval from the API class.
-    const schedulePoll = (when: Temporal.Duration) => {
+    // Use user-configured interval for auto-sync
+    const scheduleNextSync = () => {
       this.syncTimeout = setTimeout(async () => {
         await this.syncNotifications()
-        schedulePoll(this.githubAPI.getPollInterval())
-      }, when.milliseconds)
+        
+        // Check if auto-sync is still enabled after each sync
+        const currentPrefs = await this.dbManager.getPreferences()
+        if (currentPrefs.autoSyncEnabled) {
+          scheduleNextSync()
+        } else {
+          console.log('Auto-sync was disabled, stopping periodic sync')
+          this.stopSync()
+        }
+      }, preferences.autoSyncIntervalSeconds * 1000)
     }
 
-    // Start 'er up
-    schedulePoll(this.githubAPI.getPollInterval())
-
+    // Start the periodic sync
+    scheduleNextSync()
   }
 
   stopSync(): void {
     if (this.syncTimeout) {
-      clearInterval(this.syncTimeout)
+      clearTimeout(this.syncTimeout)
       this.syncTimeout = null
+      console.log('Periodic sync stopped')
     }
   }
 
   async syncNotifications(): Promise<SyncResult> {
     const result = await this.#syncNotifications()
+    // Always update sync time on successful sync, even if no new notifications
     if (result.success) {
-      await this.dbManager.saveLastSyncTime(new Date().toISOString())
+      const syncTime = new Date().toISOString()
+      await this.dbManager.saveLastSyncTime(syncTime)
+      // Add the sync time to the result so the UI can update immediately
+      result.syncTime = syncTime
     }
     if (this.emitterApi && this.mainWindow) {
       this.emitterApi.send.syncCompleted(this.mainWindow, result)

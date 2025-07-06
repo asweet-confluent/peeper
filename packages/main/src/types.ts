@@ -142,6 +142,7 @@ export interface SyncResult {
   success: boolean
   newCount?: number
   error?: string
+  syncTime?: string // Added to support immediate sync time updates
 }
 
 export interface TokenTestResult {
