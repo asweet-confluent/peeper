@@ -345,12 +345,11 @@ export class DatabaseManager {
     })
   }
 
-  async getNotifications(limit: number = 100, offset: number = 0): Promise<StoredNotification[]> {
+  async getNotifications(): Promise<StoredNotification[]> {
     return await this.allQuery(`
       SELECT * FROM notifications 
       ORDER BY updated_at DESC 
-      LIMIT ? OFFSET ?
-    `, [limit, offset])
+    `)
   }
 
   async getUnreadCount(): Promise<number> {
