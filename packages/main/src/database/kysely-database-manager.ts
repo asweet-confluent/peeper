@@ -387,20 +387,6 @@ export class KyselyDatabaseManager {
       .execute()
   }
 
-  async getNotifications(): Promise<StoredNotification[]> {
-    if (!this.db) {
-      throw new Error('Database not initialized')
-    }
-
-    return await this.db
-      .selectFrom('notifications')
-      .selectAll()
-      .orderBy('updated_at', 'desc')
-      // Keep legacy method for backwards compatibility
-      .limit(50)
-      .execute()
-  }
-
   async getNotificationsPaginated(page: number = 0, pageSize: number = 50): Promise<{ notifications: StoredNotification[], totalCount: number, hasMore: boolean }> {
     if (!this.db) {
       throw new Error('Database not initialized')

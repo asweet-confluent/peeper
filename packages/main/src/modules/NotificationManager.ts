@@ -201,19 +201,6 @@ export class NotificationManager {
     notification.show()
   }
 
-  async getFilteredNotifications(inboxId: number): Promise<StoredNotification[]> {
-    const inbox = await this.dbManager.getInbox(inboxId)
-
-    if (!inbox) {
-      throw new Error('Inbox not found')
-    }
-
-    const notifications = await this.dbManager.getNotifications()
-
-    const filtered = this.filterStoredNotifications(notifications, inbox.filter_expression || 'true')
-
-    return filtered
-  }
 
   async getFilteredNotificationsPaginated(inboxId: number, page: number = 0, pageSize: number = 50): Promise<{ notifications: StoredNotification[], totalCount: number, hasMore: boolean }> {
     const inbox = await this.dbManager.getInbox(inboxId)
@@ -225,7 +212,8 @@ export class NotificationManager {
     // For filtered notifications, we need to get all notifications first, 
     // then apply the filter, then paginate the result
     // This could be optimized in the future by applying filters at the database level
-    const allNotifications = await this.dbManager.getNotifications()
+    const allResult = await this.dbManager.getNotificationsPaginated(0, 10000)
+    const allNotifications = allResult.notifications
     const filtered = this.filterStoredNotifications(allNotifications, inbox.filter_expression || 'true')
     
     const totalCount = filtered.length

@@ -1,13 +1,12 @@
 /* eslint-disable no-alert */
-import type { Inbox, StoredNotification, SyncResult } from '../../../preload/src/types.js'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import type { Inbox, SyncResult } from '../../../preload/src/types.js'
+import React, { useCallback, useEffect, useState } from 'react'
 import InboxModal from './InboxModal.js'
 import NotificationList from './NotificationList.js'
 import PreferencesModal from './PreferencesModal.js'
 import Sidebar from './Sidebar.js'
 
 const MainApp: React.FC = () => {
-  const [notifications, setNotifications] = useState<StoredNotification[]>([])
   const [inboxes, setInboxes] = useState<Inbox[]>([])
   const [currentInbox, setCurrentInbox] = useState<Inbox | null>(null)
   const [showInboxModal, setShowInboxModal] = useState(false)
@@ -15,10 +14,7 @@ const MainApp: React.FC = () => {
   const [editingInbox, setEditingInbox] = useState<Inbox | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
-  
-  // Use ref to get current inbox value in event handlers
-  const currentInboxRef = useRef<Inbox | null>(null)
-  currentInboxRef.current = currentInbox
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     const handleGetInboxesResponse = async (inboxes: Inbox[]) => {
@@ -34,25 +30,11 @@ const MainApp: React.FC = () => {
     })
   }, [])
 
-  useEffect(() => {
-    console.log('MainApp: currentInbox changed, reloading notifications for:', currentInbox?.name || 'All Notifications')
-    if (currentInbox?.id === undefined) {
-      window.api.invoke.getNotifications().then((notifications) => {
-        console.log('MainApp: Loaded', notifications.length, 'notifications for All')
-        setNotifications(notifications)
-      }).catch((error) => {
-        console.error('Error fetching notifications:', error)
-      })
-      return
-    }
-
-    window.api.invoke.getFilteredNotifications(currentInbox?.id).then((notifications) => {
-      console.log('MainApp: Loaded', notifications.length, 'notifications for inbox:', currentInbox.name)
-      setNotifications(notifications)
-    }).catch((error) => {
-      console.error('Error fetching notifications:', error)
-    })
-  }, [currentInbox])
+  // NotificationList handles inboxId changes automatically, no need to force refresh
+  // useEffect(() => {
+  //   console.log('MainApp: currentInbox changed, refreshing NotificationList for:', currentInbox?.name || 'All Notifications')
+  //   setRefreshTrigger(prev => prev + 1)
+  // }, [currentInbox])
 
   // const selectInbox = async (inbox: Inbox | null) => {
   //   setCurrentInbox(inbox)
@@ -111,24 +93,14 @@ const MainApp: React.FC = () => {
         setLastSyncTime(new Date(result.syncTime))
       }
       
-      // Only reload notifications if there were actual changes
+      // Only refresh notifications if there were actual changes
       console.log('MainApp: Sync completed with newCount:', result.newCount)
       if (result.newCount === undefined || result.newCount > 0) {
-        // Use ref to get current inbox value at time of sync completion
-        const inbox = currentInboxRef.current
-        console.log('MainApp: Reloading notifications after sync for:', inbox?.name || 'All Notifications')
-        
-        if (inbox === null) {
-          const allNotifications = await window.api.invoke.getNotifications()
-          console.log('MainApp: Reloaded', allNotifications.length, 'notifications for All after sync')
-          setNotifications(allNotifications)
-        } else if (inbox.id) {
-          const filteredNotifications = await window.api.invoke.getFilteredNotifications(inbox.id)
-          console.log('MainApp: Reloaded', filteredNotifications.length, 'notifications for inbox:', inbox.name, 'after sync')
-          setNotifications(filteredNotifications)
-        }
+        console.log('MainApp: Refreshing NotificationList after sync')
+        // Force NotificationList to refresh by updating the trigger
+        setRefreshTrigger(prev => prev + 1)
       } else {
-        console.log('MainApp: No new notifications, skipping reload')
+        console.log('MainApp: No new notifications, skipping refresh')
       }
     }
 
@@ -204,6 +176,7 @@ const MainApp: React.FC = () => {
         <NotificationList
           onMarkAsRead={markAsRead}
           inboxId={currentInbox?.id}
+          refreshTrigger={refreshTrigger}
         />
       </div>
 

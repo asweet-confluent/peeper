@@ -37,8 +37,6 @@ export function createApiImplementations(
       testToken: (_event: IpcMainInvokeEvent, token: string) => githubAPI.testToken(token),
 
       // Notification management
-      getNotifications: () => dbManager.getNotifications(),
-
       getNotificationsPaginated: async (_event: IpcMainInvokeEvent, page: number = 0, pageSize: number = 50) => {
         return await dbManager.getNotificationsPaginated(page, pageSize)
       },
@@ -78,10 +76,6 @@ export function createApiImplementations(
 
       deleteInbox: async (_event: IpcMainInvokeEvent, id: number): Promise<void> => {
         return await dbManager.deleteInbox(id)
-      },
-
-      getFilteredNotifications: async (_event: IpcMainInvokeEvent, inboxId: number): Promise<StoredNotification[]> => {
-        return await notificationManager.getFilteredNotifications(inboxId)
       },
 
       getFilteredNotificationsPaginated: async (_event: IpcMainInvokeEvent, inboxId: number, page: number = 0, pageSize: number = 50) => {
