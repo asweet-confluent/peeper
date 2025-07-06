@@ -4,6 +4,7 @@ export interface Database {
   config: ConfigTable
   notifications: NotificationTable
   inboxes: InboxTable
+  quick_filter_configs: QuickFilterConfigTable
   user_profiles: UserProfileTable
 }
 
@@ -56,6 +57,16 @@ export interface InboxTable {
   updated_at: ColumnType<string, string | undefined, string>
 }
 
+export interface QuickFilterConfigTable {
+  id: Generated<number>
+  inbox_id: number
+  hide_read: number // SQLite stores booleans as integers  
+  hide_merged_prs: number // SQLite stores booleans as integers
+  hide_drafts: number // SQLite stores booleans as integers
+  created_at: ColumnType<string, string | undefined, never>
+  updated_at: ColumnType<string, string | undefined, string>
+}
+
 export interface UserProfileTable {
   username: string // Primary key
   login: string
@@ -81,3 +92,7 @@ export type InboxUpdate = Updateable<InboxTable>
 export type UserProfile = Selectable<UserProfileTable>
 export type NewUserProfile = Insertable<UserProfileTable>
 export type UserProfileUpdate = Updateable<UserProfileTable>
+
+export type QuickFilterConfig = Selectable<QuickFilterConfigTable>
+export type NewQuickFilterConfig = Insertable<QuickFilterConfigTable>
+export type QuickFilterConfigUpdate = Updateable<QuickFilterConfigTable>

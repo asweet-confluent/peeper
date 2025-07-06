@@ -196,6 +196,16 @@ export interface FilterContext {
   includes: (array: string[], value: string) => boolean
 }
 
+export interface QuickFilterConfig {
+  id?: number
+  inbox_id: number
+  hide_read: boolean
+  hide_merged_prs: boolean
+  hide_drafts: boolean
+  created_at?: string
+  updated_at?: string
+}
+
 export interface FilterTemplate {
   name: string
   expression: string

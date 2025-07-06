@@ -125,6 +125,15 @@ export function createApiImplementations(
       getLastSyncTime: async (): Promise<string | null> => {
         return await dbManager.getLastSyncTime()
       },
+
+      // Quick Filter Configuration
+      getQuickFilterConfig: async (_event: IpcMainInvokeEvent, inboxId: number) => {
+        return await dbManager.getOrCreateQuickFilterConfig(inboxId)
+      },
+
+      updateQuickFilterConfig: async (_event: IpcMainInvokeEvent, inboxId: number, config: any): Promise<void> => {
+        return await dbManager.updateQuickFilterConfig(inboxId, config)
+      },
     },
     on: {
       // App events - main to renderer communication

@@ -327,14 +327,17 @@ body {
 }
 
 .main-header {
-  padding: 1rem;
-  border-bottom: 1px solid #30363d;
-  background: #0d1117;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #21262d;
 }
 
 .main-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
   color: #f0f6fc;
-  font-size: 1.25rem;
 }
 
 .notification-list {
@@ -1196,4 +1199,88 @@ body {
 
 .filter-help-content ul:last-child {
   margin-bottom: 0;
+}
+
+/* Quick Filters Dropdown */
+.quick-filters-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.quick-filters-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-filters-button:hover {
+  background: #30363d;
+  border-color: #40464e;
+}
+
+.quick-filters-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.quick-filters-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  min-width: 200px;
+  padding: 8px 0;
+}
+
+.quick-filters-header {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f0f6fc;
+  border-bottom: 1px solid #30363d;
+  margin-bottom: 4px;
+}
+
+.quick-filter-option {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.quick-filter-option:hover {
+  background: #30363d;
+}
+
+.quick-filter-option input[type="checkbox"] {
+  margin: 0;
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+  accent-color: #238636;
+  cursor: pointer;
+}
+
+.quick-filter-option input[type="checkbox"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.quick-filter-option .checkmark {
+  /* For custom checkbox styling if needed */
 }

@@ -1,5 +1,5 @@
 import type { GitHubNotification, PullRequestDetails, StoredNotification, Preferences } from '../types.js'
-import type { Database as KyselyDatabase, NewNotification, NewInbox, NewConfig, NewUserProfile, UserProfile } from './schema.js'
+import type { Database as KyselyDatabase, NewNotification, NewInbox, NewConfig, NewUserProfile, UserProfile, QuickFilterConfig, NewQuickFilterConfig, QuickFilterConfigUpdate } from './schema.js'
 import { Kysely, SqliteDialect, sql } from 'kysely'
 import BetterSqlite3 from 'better-sqlite3'
 import * as path from 'node:path'
@@ -143,6 +143,19 @@ export class KyselyDatabaseManager {
       .addColumn('cached_at', 'text', (col) => col.notNull())
       .execute()
 
+    // Create quick_filter_configs table
+    await this.db.schema
+      .createTable('quick_filter_configs')
+      .ifNotExists()
+      .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+      .addColumn('inbox_id', 'integer', (col) => col.notNull().references('inboxes.id').onDelete('cascade'))
+      .addColumn('hide_read', 'integer', (col) => col.defaultTo(1).notNull())
+      .addColumn('hide_merged_prs', 'integer', (col) => col.defaultTo(1).notNull())
+      .addColumn('hide_drafts', 'integer', (col) => col.defaultTo(1).notNull())
+      .addColumn('created_at', 'text', (col) => col.defaultTo('CURRENT_TIMESTAMP').notNull())
+      .addColumn('updated_at', 'text', (col) => col.defaultTo('CURRENT_TIMESTAMP').notNull())
+      .execute()
+
     // Create indexes
     await this.createIndexes()
 
@@ -177,6 +190,7 @@ export class KyselyDatabaseManager {
       { name: 'idx_notifications_pr_state', table: 'notifications', column: 'pr_state' },
       { name: 'idx_notifications_current_user_reviewer', table: 'notifications', column: 'current_user_is_reviewer' },
       { name: 'idx_user_profiles_cached_at', table: 'user_profiles', column: 'cached_at' },
+      { name: 'idx_quick_filter_configs_inbox_id', table: 'quick_filter_configs', column: 'inbox_id' },
     ]
 
     for (const index of indexes) {
@@ -421,6 +435,7 @@ export class KyselyDatabaseManager {
 
   async getFilteredNotificationsPaginated(
     filterExpression: string, 
+    quickFilterConfig: QuickFilterConfig | null = null,
     page: number = 0, 
     pageSize: number = 50
   ): Promise<{ notifications: StoredNotification[], totalCount: number, hasMore: boolean }> {
@@ -432,6 +447,25 @@ export class KyselyDatabaseManager {
     let query = this.db
       .selectFrom('notifications')
       .selectAll()
+
+    // Apply quick filters first
+    if (quickFilterConfig) {
+      if (quickFilterConfig.hide_read) {
+        query = query.where('unread', '=', 1)
+      }
+      if (quickFilterConfig.hide_merged_prs) {
+        query = query.where((eb) => eb.or([
+          eb('subject_type', '!=', 'PullRequest'),
+          eb('pr_merged', '!=', 1)
+        ]))
+      }
+      if (quickFilterConfig.hide_drafts) {
+        query = query.where((eb) => eb.or([
+          eb('subject_type', '!=', 'PullRequest'),
+          eb('pr_draft', '!=', 1)
+        ]))
+      }
+    }
 
     // Apply filter expression if provided
     if (filterExpression && filterExpression.trim() !== '' && filterExpression.trim() !== 'true') {
@@ -569,6 +603,84 @@ export class KyselyDatabaseManager {
       .executeTakeFirst()
 
     return result || null
+  }
+
+  // Quick Filter Configuration methods
+  async getQuickFilterConfig(inboxId: number): Promise<QuickFilterConfig | null> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    const result = await this.db
+      .selectFrom('quick_filter_configs')
+      .selectAll()
+      .where('inbox_id', '=', inboxId)
+      .executeTakeFirst()
+
+    return result || null
+  }
+
+  async createQuickFilterConfig(config: NewQuickFilterConfig): Promise<number> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    const result = await this.db
+      .insertInto('quick_filter_configs')
+      .values({
+        inbox_id: config.inbox_id,
+        hide_read: typeof config.hide_read === 'boolean' ? (config.hide_read ? 1 : 0) : config.hide_read,
+        hide_merged_prs: typeof config.hide_merged_prs === 'boolean' ? (config.hide_merged_prs ? 1 : 0) : config.hide_merged_prs,
+        hide_drafts: typeof config.hide_drafts === 'boolean' ? (config.hide_drafts ? 1 : 0) : config.hide_drafts,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow()
+
+    return result.id
+  }
+
+  async updateQuickFilterConfig(inboxId: number, config: QuickFilterConfigUpdate): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    await this.db
+      .updateTable('quick_filter_configs')
+      .set({
+        hide_read: typeof config.hide_read === 'boolean' ? (config.hide_read ? 1 : 0) : config.hide_read,
+        hide_merged_prs: typeof config.hide_merged_prs === 'boolean' ? (config.hide_merged_prs ? 1 : 0) : config.hide_merged_prs,
+        hide_drafts: typeof config.hide_drafts === 'boolean' ? (config.hide_drafts ? 1 : 0) : config.hide_drafts,
+        updated_at: new Date().toISOString(),
+      })
+      .where('inbox_id', '=', inboxId)
+      .execute()
+  }
+
+  async getOrCreateQuickFilterConfig(inboxId: number): Promise<QuickFilterConfig> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    let config = await this.getQuickFilterConfig(inboxId)
+    
+    if (!config) {
+      // Create default quick filter config
+      const configId = await this.createQuickFilterConfig({
+        inbox_id: inboxId,
+        hide_read: 1, // Default to true
+        hide_merged_prs: 1, // Default to true  
+        hide_drafts: 1, // Default to true
+      })
+      
+      config = await this.getQuickFilterConfig(inboxId)
+      if (!config) {
+        throw new Error('Failed to create quick filter config')
+      }
+    }
+    
+    return config
   }
 
   close(): void {

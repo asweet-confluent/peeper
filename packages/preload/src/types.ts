@@ -46,6 +46,16 @@ export interface Inbox {
   updated_at?: string
 }
 
+export interface QuickFilterConfig {
+  id?: number
+  inbox_id: number
+  hide_read: boolean | number
+  hide_merged_prs: boolean | number
+  hide_drafts: boolean | number
+  created_at?: string
+  updated_at?: string
+}
+
 export interface FilterTemplate {
   name: string
   expression: string

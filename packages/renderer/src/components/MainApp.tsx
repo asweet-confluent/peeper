@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import InboxModal from './InboxModal.js'
 import NotificationList from './NotificationList.js'
 import PreferencesModal from './PreferencesModal.js'
+import QuickFiltersDropdown from './QuickFiltersDropdown.js'
 import Sidebar from './Sidebar.js'
 
 const MainApp: React.FC = () => {
@@ -171,6 +172,10 @@ const MainApp: React.FC = () => {
       <div className="main-content">
         <div className="main-header">
           <h1>{currentInbox ? currentInbox.name : 'All Notifications'}</h1>
+          <QuickFiltersDropdown 
+            inboxId={currentInbox?.id}
+            onConfigChange={() => setRefreshTrigger(prev => prev + 1)}
+          />
         </div>
 
         <NotificationList

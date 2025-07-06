@@ -231,9 +231,13 @@ export class NotificationManager {
       throw new Error('Inbox not found')
     }
 
+    // Get quick filter configuration for this inbox
+    const quickFilterConfig = await this.dbManager.getOrCreateQuickFilterConfig(inboxId)
+
     // Use database-level filtering for improved performance
     return await this.dbManager.getFilteredNotificationsPaginated(
-      inbox.filter_expression || 'true', 
+      inbox.filter_expression || 'true',
+      quickFilterConfig,
       page, 
       pageSize
     )
