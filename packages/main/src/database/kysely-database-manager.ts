@@ -1,11 +1,10 @@
 import type { GitHubNotification, PullRequestDetails, StoredNotification, Preferences } from '../types.js'
-import type { Database as KyselyDatabase, NewNotification, NewInbox, NewConfig } from './schema.js'
+import type { Database as KyselyDatabase, NewNotification, NewInbox, NewConfig, NewUserProfile, UserProfile } from './schema.js'
 import { Kysely, SqliteDialect, sql } from 'kysely'
 import BetterSqlite3 from 'better-sqlite3'
 import * as path from 'node:path'
 import CryptoJS from 'crypto-js'
 import { app } from 'electron'
-import { convertApiUrlToWebUrl } from '../utils.js'
 import type { AppModule } from '../AppModule.js'
 import type { ModuleContext } from '../ModuleContext.js'
 
@@ -47,6 +46,7 @@ export class KyselyDatabaseManager {
   private dbPath: string
   private db: Kysely<KyselyDatabase> | null = null
   private encryptionKey: string = 'peeper-secret-key' // In production, this should be more secure
+  private readonly USER_PROFILE_CACHE_TTL_MINUTES = 30 // Default cache TTL in minutes
 
   constructor() {
     const userDataPath = app.getPath('userData')
@@ -127,6 +127,18 @@ export class KyselyDatabaseManager {
       .addColumn('updated_at', 'text', (col) => col.defaultTo('CURRENT_TIMESTAMP').notNull())
       .execute()
 
+    // Create user_profiles table
+    await this.db.schema
+      .createTable('user_profiles')
+      .ifNotExists()
+      .addColumn('username', 'text', (col) => col.primaryKey())
+      .addColumn('login', 'text', (col) => col.notNull())
+      .addColumn('avatar_url', 'text', (col) => col.notNull())
+      .addColumn('name', 'text')
+      .addColumn('bio', 'text')
+      .addColumn('cached_at', 'text', (col) => col.notNull())
+      .execute()
+
     // Create indexes
     await this.createIndexes()
 
@@ -160,6 +172,7 @@ export class KyselyDatabaseManager {
       { name: 'idx_notifications_pr_author', table: 'notifications', column: 'pr_author' },
       { name: 'idx_notifications_pr_state', table: 'notifications', column: 'pr_state' },
       { name: 'idx_notifications_current_user_reviewer', table: 'notifications', column: 'current_user_is_reviewer' },
+      { name: 'idx_user_profiles_cached_at', table: 'user_profiles', column: 'cached_at' },
     ]
 
     for (const index of indexes) {
@@ -248,8 +261,6 @@ export class KyselyDatabaseManager {
       throw new Error('Database not initialized')
     }
 
-    console.log('Saving last sync time to database:', timestamp)
-    
     await this.db
       .insertInto('config')
       .values({ key: 'last_sync_time', value: timestamp })
@@ -268,7 +279,6 @@ export class KyselyDatabaseManager {
       .where('key', '=', 'last_sync_time')
       .executeTakeFirst()
 
-    console.log('Retrieved last sync time from database:', result?.value || null)
     return result?.value || null
   }
 
@@ -284,7 +294,7 @@ export class KyselyDatabaseManager {
           thread_id: notification.subject?.url || null,
           subject_title: notification.subject?.title || '',
           subject_type: notification.subject?.type || '',
-          subject_url: convertApiUrlToWebUrl(notification.subject?.url || null) || null,
+          subject_url: notification.subject?.url || null,
           repository_name: notification.repository?.name || '',
           repository_full_name: notification.repository?.full_name || '',
           repository_owner: notification.repository?.owner?.login || '',
@@ -338,7 +348,7 @@ export class KyselyDatabaseManager {
       thread_id: notification.subject?.url || null,
       subject_title: notification.subject?.title || '',
       subject_type: notification.subject?.type || '',
-      subject_url: convertApiUrlToWebUrl(notification.subject?.url || null) || null,
+      subject_url: notification.subject?.url || null,
       repository_name: notification.repository?.name || '',
       repository_full_name: notification.repository?.full_name || '',
       repository_owner: notification.repository?.owner?.login || '',
@@ -543,53 +553,55 @@ export class KyselyDatabaseManager {
         }
       }
 
-      // Update existing API URLs to web URLs
-      await this.updateApiUrlsToWebUrls()
+
+      // Check if user_profiles table exists and create it if it doesn't
+      await this.createUserProfilesTableIfNotExists()
     } catch (error) {
       console.error('Migration error:', error)
       // Don't fail if migrations have issues, table might be new
     }
   }
 
-  /**
-   * Update existing API URLs to web URLs for better user experience
-   */
-  async updateApiUrlsToWebUrls(): Promise<void> {
+  private async createUserProfilesTableIfNotExists(): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized')
     }
 
-    console.log('Updating API URLs to web URLs...')
+    try {
+      // Check if user_profiles table exists by trying to select from it
+      await this.db
+        .selectFrom('user_profiles')
+        .select('username')
+        .limit(1)
+        .execute()
+      // If no error, table exists
+    } catch (error) {
+      // Table doesn't exist, create it
+      console.log('Creating user_profiles table...')
+      
+      try {
+        await this.db.schema
+          .createTable('user_profiles')
+          .addColumn('username', 'text', (col) => col.primaryKey())
+          .addColumn('login', 'text', (col) => col.notNull())
+          .addColumn('avatar_url', 'text', (col) => col.notNull())
+          .addColumn('name', 'text')
+          .addColumn('bio', 'text')
+          .addColumn('cached_at', 'text', (col) => col.notNull())
+          .execute()
 
-    const notifications = await this.db
-      .selectFrom('notifications')
-      .select(['id', 'subject_url'])
-      .where('subject_url', 'like', 'https://api.github.com/%')
-      .execute()
+        // Create index for cached_at column
+        await this.db.schema
+          .createIndex('idx_user_profiles_cached_at')
+          .on('user_profiles')
+          .column('cached_at')
+          .execute()
 
-    if (notifications.length === 0) {
-      console.log('No API URLs found to convert')
-      return
-    }
-
-    console.log(`Converting ${notifications.length} API URLs to web URLs...`)
-
-    await this.db.transaction().execute(async (trx) => {
-      for (const notification of notifications) {
-        if (notification.subject_url) {
-          const webUrl = convertApiUrlToWebUrl(notification.subject_url)
-          if (webUrl && webUrl !== notification.subject_url) {
-            await trx
-              .updateTable('notifications')
-              .set({ subject_url: webUrl })
-              .where('id', '=', notification.id)
-              .execute()
-          }
-        }
+        console.log('Successfully created user_profiles table')
+      } catch (createError) {
+        console.error('Failed to create user_profiles table:', createError)
       }
-    })
-
-    console.log(`Successfully converted ${notifications.length} API URLs to web URLs`)
+    }
   }
 
   async getUniqueUsernames(): Promise<string[]> {
@@ -733,6 +745,135 @@ export class KyselyDatabaseManager {
 
   async allQuery(_sql: string, _params: any[] = []): Promise<any[]> {
     throw new Error('allQuery is deprecated in KyselyDatabaseManager. Use Kysely query methods instead.')
+  }
+
+  // User Profile caching methods
+  async getUserProfile(username: string): Promise<UserProfile | null> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    try {
+      const profile = await this.db
+        .selectFrom('user_profiles')
+        .selectAll()
+        .where('username', '=', username)
+        .executeTakeFirst()
+
+      if (!profile) {
+        return null
+      }
+
+      // Check if profile has expired
+      const cachedAt = new Date(profile.cached_at)
+      const expiresAt = new Date(cachedAt.getTime() + this.USER_PROFILE_CACHE_TTL_MINUTES * 60 * 1000)
+      const now = new Date()
+
+      if (now > expiresAt) {
+        // Profile has expired, remove it and return null
+        await this.db
+          .deleteFrom('user_profiles')
+          .where('username', '=', username)
+          .execute()
+        return null
+      }
+
+      return profile
+    } catch (error) {
+      console.error('Error fetching user profile from cache:', error)
+      return null
+    }
+  }
+
+  async saveUserProfile(profile: {
+    username: string
+    login: string
+    avatar_url: string
+    name?: string
+    bio?: string
+  }): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    try {
+      const now = new Date()
+
+      const userProfile: NewUserProfile = {
+        username: profile.username,
+        login: profile.login,
+        avatar_url: profile.avatar_url,
+        name: profile.name || null,
+        bio: profile.bio || null,
+        cached_at: now.toISOString(),
+      }
+
+      await this.db
+        .insertInto('user_profiles')
+        .values(userProfile)
+        .onConflict((oc) => oc.column('username').doUpdateSet({
+          login: userProfile.login,
+          avatar_url: userProfile.avatar_url,
+          name: userProfile.name,
+          bio: userProfile.bio,
+          cached_at: userProfile.cached_at,
+        }))
+        .execute()
+    } catch (error) {
+      console.error('Error saving user profile to cache:', error)
+      throw error
+    }
+  }
+
+  async cleanupExpiredUserProfiles(): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    try {
+      const now = new Date()
+      const cutoffTime = new Date(now.getTime() - this.USER_PROFILE_CACHE_TTL_MINUTES * 60 * 1000)
+      
+      const result = await this.db
+        .deleteFrom('user_profiles')
+        .where('cached_at', '<=', cutoffTime.toISOString())
+        .execute()
+
+      console.log(`Cleaned up ${result.length} expired user profiles`)
+    } catch (error) {
+      console.error('Error cleaning up expired user profiles:', error)
+    }
+  }
+
+  async getUserProfileCacheStats(): Promise<{ total: number, expired: number }> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    try {
+      const now = new Date()
+      const cutoffTime = new Date(now.getTime() - this.USER_PROFILE_CACHE_TTL_MINUTES * 60 * 1000)
+      
+      const [totalResult, expiredResult] = await Promise.all([
+        this.db
+          .selectFrom('user_profiles')
+          .select(sql<number>`count(*)`.as('count'))
+          .executeTakeFirst(),
+        this.db
+          .selectFrom('user_profiles')
+          .select(sql<number>`count(*)`.as('count'))
+          .where('cached_at', '<=', cutoffTime.toISOString())
+          .executeTakeFirst()
+      ])
+
+      return {
+        total: totalResult?.count || 0,
+        expired: expiredResult?.count || 0,
+      }
+    } catch (error) {
+      console.error('Error getting user profile cache stats:', error)
+      return { total: 0, expired: 0 }
+    }
   }
 }
 

@@ -4,6 +4,7 @@ export interface Database {
   config: ConfigTable
   notifications: NotificationTable
   inboxes: InboxTable
+  user_profiles: UserProfileTable
 }
 
 export interface ConfigTable {
@@ -55,6 +56,15 @@ export interface InboxTable {
   updated_at: ColumnType<string, string | undefined, string>
 }
 
+export interface UserProfileTable {
+  username: string // Primary key
+  login: string
+  avatar_url: string
+  name: string | null
+  bio: string | null
+  cached_at: string // ISO timestamp when cached
+}
+
 // Type helpers for better type safety
 export type Config = Selectable<ConfigTable>
 export type NewConfig = Insertable<ConfigTable>
@@ -67,3 +77,7 @@ export type NotificationUpdate = Updateable<NotificationTable>
 export type Inbox = Selectable<InboxTable>
 export type NewInbox = Insertable<InboxTable>
 export type InboxUpdate = Updateable<InboxTable>
+
+export type UserProfile = Selectable<UserProfileTable>
+export type NewUserProfile = Insertable<UserProfileTable>
+export type UserProfileUpdate = Updateable<UserProfileTable>

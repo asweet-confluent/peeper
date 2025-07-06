@@ -10,10 +10,6 @@ export class GitHubAPI {
   private octokit: Octokit | null = null
   private pollInterval: Temporal.Duration = Temporal.Duration.from('PT1M')
 
-  // Cache for user profiles to avoid repeated API calls
-  private userProfileCache: Map<string, { profile: any, timestamp: Temporal.Instant }> = new Map()
-  private readonly CACHE_EXPIRY = Temporal.Duration.from('PT30M')
-
   constructor(dbManager: KyselyDatabaseManager) {
     this.dbManager = dbManager
   }
@@ -267,10 +263,15 @@ export class GitHubAPI {
     if (!username)
       return null
 
-    // Check cache first
-    const cached = this.userProfileCache.get(username)
-    if (cached && Temporal.Duration.compare(Temporal.Now.instant().since(cached.timestamp), this.CACHE_EXPIRY) < 0) {
-      return cached.profile
+    // Check database cache first
+    const cached = await this.dbManager.getUserProfile(username)
+    if (cached) {
+      return {
+        login: cached.login,
+        avatar_url: cached.avatar_url,
+        name: cached.name || undefined,
+        bio: cached.bio || undefined,
+      }
     }
 
     try {
@@ -286,10 +287,13 @@ export class GitHubAPI {
         bio: userData.bio || undefined,
       }
 
-      // Cache the result
-      this.userProfileCache.set(username, {
-        profile,
-        timestamp: Temporal.Now.instant(),
+      // Cache the result in database (uses default TTL)
+      await this.dbManager.saveUserProfile({
+        username,
+        login: userData.login,
+        avatar_url: userData.avatar_url,
+        name: userData.name || undefined,
+        bio: userData.bio || undefined,
       })
 
       return profile
@@ -299,11 +303,31 @@ export class GitHubAPI {
       return null
     }
   }
+
+  // Cleanup expired user profiles from database cache
+  async cleanupExpiredProfiles(): Promise<void> {
+    try {
+      await this.dbManager.cleanupExpiredUserProfiles()
+    } catch (error) {
+      console.error('Error cleaning up expired user profiles:', error)
+    }
+  }
+
+  // Get user profile cache statistics
+  async getProfileCacheStats(): Promise<{ total: number, expired: number }> {
+    try {
+      return await this.dbManager.getUserProfileCacheStats()
+    } catch (error) {
+      console.error('Error getting profile cache stats:', error)
+      return { total: 0, expired: 0 }
+    }
+  }
 }
 
 export class GitHubAPIModule implements AppModule {
 
   githubAPI: GitHubAPI | null = null
+  private cleanupInterval: NodeJS.Timeout | null = null
 
   enable(context: ModuleContext): Promise<void> {
     if (!context.dbManager) {
@@ -312,7 +336,20 @@ export class GitHubAPIModule implements AppModule {
     // Initialize GitHubAPI with the database manager
     this.githubAPI = new GitHubAPI(context.dbManager)
     context.githubAPI = this.githubAPI
-    context.app.on('quit', () => this.githubAPI?.resetClient())
+    
+    // Set up periodic cleanup of expired user profiles (every hour)
+    this.cleanupInterval = setInterval(() => {
+      this.githubAPI?.cleanupExpiredProfiles()
+    }, 60 * 60 * 1000) // 1 hour
+    
+    context.app.on('quit', () => {
+      this.githubAPI?.resetClient()
+      if (this.cleanupInterval) {
+        clearInterval(this.cleanupInterval)
+        this.cleanupInterval = null
+      }
+    })
+    
     return Promise.resolve()
   }
 }
