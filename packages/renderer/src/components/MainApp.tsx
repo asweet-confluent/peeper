@@ -203,7 +203,6 @@ const MainApp: React.FC = () => {
 
         <NotificationList
           onMarkAsRead={markAsRead}
-          infiniteMode={true}
           inboxId={currentInbox?.id}
         />
       </div>

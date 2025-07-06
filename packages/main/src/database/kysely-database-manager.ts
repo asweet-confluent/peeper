@@ -47,7 +47,7 @@ export class KyselyDatabaseManager {
   private dbPath: string
   private db: Kysely<KyselyDatabase> | null = null
   private encryptionKey: string = 'peeper-secret-key' // In production, this should be more secure
-  private readonly USER_PROFILE_CACHE_TTL = Temporal.Duration.from('P1M')
+  private readonly USER_PROFILE_CACHE_TTL = Temporal.Duration.from({hours: 24 * 30})
 
   constructor() {
     const userDataPath = app.getPath('userData')
@@ -798,11 +798,10 @@ export class KyselyDatabaseManager {
       }
 
       // Check if profile has expired
-      const cachedAt = new Date(profile.cached_at)
-      const expiresAt = new Date(cachedAt.getTime() + this.USER_PROFILE_CACHE_TTL_MINUTES * 60 * 1000)
-      const now = new Date()
+      const expiresAt = Temporal.Instant.from(profile.cached_at).add(this.USER_PROFILE_CACHE_TTL)
+      const now = Temporal.Now.instant()
 
-      if (now > expiresAt) {
+      if (Temporal.Instant.compare(now, expiresAt) > 0) {
         // Profile has expired, remove it and return null
         await this.db
           .deleteFrom('user_profiles')
@@ -864,12 +863,11 @@ export class KyselyDatabaseManager {
     }
 
     try {
-      const now = new Date()
-      const cutoffTime = new Date(now.getTime() - this.USER_PROFILE_CACHE_TTL_MINUTES * 60 * 1000)
-      
+      const cutoffTime = Temporal.Now.instant().subtract(this.USER_PROFILE_CACHE_TTL)
+
       const result = await this.db
         .deleteFrom('user_profiles')
-        .where('cached_at', '<=', cutoffTime.toISOString())
+        .where('cached_at', '<=', cutoffTime.toString())
         .execute()
 
       console.log(`Cleaned up ${result.length} expired user profiles`)
@@ -885,7 +883,7 @@ export class KyselyDatabaseManager {
 
     try {
       const now = new Date()
-      const cutoffTime = new Date(now.getTime() - this.USER_PROFILE_CACHE_TTL_MINUTES * 60 * 1000)
+      const cutoffTime = Temporal.Now.instant().subtract(this.USER_PROFILE_CACHE_TTL)
       
       const [totalResult, expiredResult] = await Promise.all([
         this.db
@@ -895,7 +893,7 @@ export class KyselyDatabaseManager {
         this.db
           .selectFrom('user_profiles')
           .select(sql<number>`count(*)`.as('count'))
-          .where('cached_at', '<=', cutoffTime.toISOString())
+          .where('cached_at', '<=', cutoffTime.toJSON())
           .executeTakeFirst()
       ])
 
