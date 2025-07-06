@@ -1,6 +1,7 @@
-import type { StoredNotification } from '../../../preload/src/types.js'
+import type { StoredNotification, PaginatedNotificationsResult } from '../../../preload/src/types.js'
 import React, { useEffect, useState, memo, useCallback, useRef } from 'react'
 import { VariableSizeList as List } from 'react-window'
+import InfiniteLoader from 'react-window-infinite-loader'
 
 // Constants for better maintainability
 const HEADER_HEIGHT = 80
@@ -8,8 +9,11 @@ const DEFAULT_ITEM_HEIGHT = 175 // Initial estimate, will be measured dynamicall
 const OVERSCAN_COUNT = 5
 
 interface NotificationListProps {
-  notifications: StoredNotification[]
+  notifications?: StoredNotification[] // Legacy prop for backwards compatibility
   onMarkAsRead: (notificationId: string) => void
+  infiniteMode?: boolean // New prop to enable infinite loading
+  initialPageSize?: number
+  inboxId?: number // For filtered notifications
 }
 
 interface NotificationItemProps {
@@ -144,14 +148,36 @@ const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, 
   
   const notification = notifications[index]
   const itemRef = useRef<HTMLDivElement>(null)
+  const heightMeasured = useRef(false)
 
-  // Measure the height after the component mounts/updates
+  // Measure the height only once when the component mounts or when the notification changes
   useEffect(() => {
-    if (itemRef.current) {
+    if (itemRef.current && notification && !heightMeasured.current) {
       const height = itemRef.current.offsetHeight
       setItemHeight(index, height)
+      heightMeasured.current = true
     }
-  })
+  }, [index, notification?.id, setItemHeight])
+
+  // Reset height measurement flag when notification changes
+  useEffect(() => {
+    heightMeasured.current = false
+  }, [notification?.id])
+
+  // Handle loading state for infinite loader
+  if (!notification) {
+    return (
+      <div style={style}>
+        <div className="notification-item loading">
+          <div className="notification-content">
+            <div className="loading-placeholder">
+              Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={style}>
@@ -221,12 +247,79 @@ const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, 
 NotificationItem.displayName = 'NotificationItem'
 
 const NotificationList: React.FC<NotificationListProps> = ({
-  notifications,
+  notifications: legacyNotifications,
   onMarkAsRead,
+  infiniteMode = true,
+  initialPageSize = 50,
+  inboxId,
 }) => {
   const [containerHeight, setContainerHeight] = useState(window.innerHeight - HEADER_HEIGHT)
+  const [allNotifications, setAllNotifications] = useState<StoredNotification[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
   const listRef = useRef<any>(null)
   const itemHeights = useRef<Map<number, number>>(new Map())
+  const loadingRef = useRef(false)
+
+  // Load notifications for infinite mode
+  const loadNotifications = useCallback(async (page: number = 0, reset: boolean = false) => {
+    if (loadingRef.current) return // Prevent multiple simultaneous loads
+    
+    loadingRef.current = true
+    setIsLoading(true)
+    try {
+      let result: PaginatedNotificationsResult
+      
+      if (inboxId) {
+        result = await window.api.invoke.getFilteredNotificationsPaginated(inboxId, page, initialPageSize)
+      } else {
+        result = await window.api.invoke.getNotificationsPaginated(page, initialPageSize)
+      }
+      
+      if (reset) {
+        setAllNotifications(result.notifications)
+      } else {
+        setAllNotifications(prev => [...prev, ...result.notifications])
+      }
+      
+      setHasMore(result.hasMore)
+      setTotalCount(result.totalCount)
+      setCurrentPage(page)
+    } catch (error) {
+      console.error('Error loading notifications:', error)
+    } finally {
+      setIsLoading(false)
+      loadingRef.current = false
+    }
+  }, [initialPageSize, inboxId]) // Removed isLoading from dependencies
+
+  // Initial load for infinite mode
+  useEffect(() => {
+    if (infiniteMode && !legacyNotifications) {
+      loadNotifications(0, true)
+    }
+  }, [infiniteMode, legacyNotifications, loadNotifications])
+
+  // Reset when inboxId changes
+  useEffect(() => {
+    if (infiniteMode && !legacyNotifications) {
+      setAllNotifications([])
+      setCurrentPage(0)
+      setHasMore(true)
+      setIsLoading(false)
+      loadingRef.current = false
+      itemHeights.current.clear()
+      if (listRef.current) {
+        listRef.current.resetAfterIndex(0)
+      }
+      loadNotifications(0, true)
+    }
+  }, [inboxId, infiniteMode, legacyNotifications, loadNotifications])
+
+  // Use legacy notifications if provided, otherwise use infinite mode data
+  const displayNotifications = infiniteMode && !legacyNotifications ? allNotifications : (legacyNotifications || [])
 
   // Handle window resize to update container height and reset item sizes
   useEffect(() => {
@@ -282,18 +375,31 @@ const NotificationList: React.FC<NotificationListProps> = ({
     onMarkAsRead(notificationId)
   }, [onMarkAsRead])
 
+  // Function to check if an item is loaded
+  const isItemLoaded = useCallback((index: number) => {
+    return index < displayNotifications.length
+  }, [displayNotifications.length])
+
+  // Function to load more items
+  const loadMoreItems = useCallback(async (_startIndex: number, _stopIndex: number) => {
+    if (!infiniteMode || !hasMore || loadingRef.current) return
+    
+    const nextPage = currentPage + 1
+    await loadNotifications(nextPage)
+  }, [infiniteMode, hasMore, currentPage, loadNotifications])
+
   // Memoize the data object to prevent unnecessary re-renders
   const itemData = React.useMemo(() => ({
-    notifications,
+    notifications: displayNotifications,
     onMarkAsRead,
     formatDate,
     escapeHtml,
     handleNotificationClick,
     handleMarkAsReadClick,
     setItemHeight
-  }), [notifications, onMarkAsRead, formatDate, escapeHtml, handleNotificationClick, handleMarkAsReadClick, setItemHeight])
+  }), [displayNotifications, onMarkAsRead, formatDate, escapeHtml, handleNotificationClick, handleMarkAsReadClick, setItemHeight])
 
-  if (notifications.length === 0) {
+  if (displayNotifications.length === 0 && !isLoading) {
     return (
       <div className="notification-list">
         <div className="empty-state">
@@ -304,13 +410,47 @@ const NotificationList: React.FC<NotificationListProps> = ({
     )
   }
 
+  // Calculate item count for infinite loader
+  const itemCount = infiniteMode ? (hasMore ? displayNotifications.length + 1 : displayNotifications.length) : displayNotifications.length
+
+  if (infiniteMode && !legacyNotifications) {
+    return (
+      <div className="notification-list">
+        <InfiniteLoader
+          isItemLoaded={isItemLoaded}
+          itemCount={itemCount}
+          loadMoreItems={loadMoreItems}
+        >
+          {({ onItemsRendered, ref }) => (
+            <List
+              ref={(list) => {
+                listRef.current = list
+                ref(list)
+              }}
+              height={containerHeight}
+              width="100%"
+              itemCount={itemCount}
+              itemSize={getItemSize}
+              itemData={itemData}
+              overscanCount={OVERSCAN_COUNT}
+              onItemsRendered={onItemsRendered}
+            >
+              {NotificationItem}
+            </List>
+          )}
+        </InfiniteLoader>
+      </div>
+    )
+  }
+
+  // Fallback to legacy mode
   return (
     <div className="notification-list">
       <List
         ref={listRef}
         height={containerHeight}
         width="100%"
-        itemCount={notifications.length}
+        itemCount={displayNotifications.length}
         itemSize={getItemSize}
         itemData={itemData}
         overscanCount={OVERSCAN_COUNT}

@@ -7,6 +7,7 @@ import CryptoJS from 'crypto-js'
 import { app } from 'electron'
 import type { AppModule } from '../AppModule.js'
 import type { ModuleContext } from '../ModuleContext.js'
+import { Temporal } from '@js-temporal/polyfill'
 
 // Common interfaces for database operations
 interface InboxRecord {
@@ -46,7 +47,7 @@ export class KyselyDatabaseManager {
   private dbPath: string
   private db: Kysely<KyselyDatabase> | null = null
   private encryptionKey: string = 'peeper-secret-key' // In production, this should be more secure
-  private readonly USER_PROFILE_CACHE_TTL_MINUTES = 30 // Default cache TTL in minutes
+  private readonly USER_PROFILE_CACHE_TTL = Temporal.Duration.from('P1M')
 
   constructor() {
     const userDataPath = app.getPath('userData')
@@ -55,6 +56,8 @@ export class KyselyDatabaseManager {
 
   async initialize(): Promise<void> {
     const sqlite = new BetterSqlite3(this.dbPath)
+    // Enable WAL mode for better concurrency
+    sqlite.pragma('journal_mode = WAL')
     
     this.db = new Kysely<KyselyDatabase>({
       dialect: new SqliteDialect({
@@ -393,10 +396,40 @@ export class KyselyDatabaseManager {
       .selectFrom('notifications')
       .selectAll()
       .orderBy('updated_at', 'desc')
-      // Temporary until better limits are in place
-      // and we have virtual lists
+      // Keep legacy method for backwards compatibility
       .limit(50)
       .execute()
+  }
+
+  async getNotificationsPaginated(page: number = 0, pageSize: number = 50): Promise<{ notifications: StoredNotification[], totalCount: number, hasMore: boolean }> {
+    if (!this.db) {
+      throw new Error('Database not initialized')
+    }
+
+    // Get total count
+    const countResult = await this.db
+      .selectFrom('notifications')
+      .select(sql<number>`count(*)`.as('total'))
+      .executeTakeFirst()
+    
+    const totalCount = countResult?.total || 0
+    const offset = page * pageSize
+    const hasMore = offset + pageSize < totalCount
+
+    // Get paginated notifications
+    const notifications = await this.db
+      .selectFrom('notifications')
+      .selectAll()
+      .orderBy('updated_at', 'desc')
+      .limit(pageSize)
+      .offset(offset)
+      .execute()
+
+    return {
+      notifications,
+      totalCount,
+      hasMore
+    }
   }
 
   async getUnreadCount(): Promise<number> {

@@ -213,6 +213,32 @@ export class NotificationManager {
     return filtered
   }
 
+  async getFilteredNotificationsPaginated(inboxId: number, page: number = 0, pageSize: number = 50): Promise<{ notifications: StoredNotification[], totalCount: number, hasMore: boolean }> {
+    const inbox = await this.dbManager.getInbox(inboxId)
+
+    if (!inbox) {
+      throw new Error('Inbox not found')
+    }
+
+    // For filtered notifications, we need to get all notifications first, 
+    // then apply the filter, then paginate the result
+    // This could be optimized in the future by applying filters at the database level
+    const allNotifications = await this.dbManager.getNotifications()
+    const filtered = this.filterStoredNotifications(allNotifications, inbox.filter_expression || 'true')
+    
+    const totalCount = filtered.length
+    const offset = page * pageSize
+    const hasMore = offset + pageSize < totalCount
+    
+    const paginatedNotifications = filtered.slice(offset, offset + pageSize)
+
+    return {
+      notifications: paginatedNotifications,
+      totalCount,
+      hasMore
+    }
+  }
+
   private filterNotifications(notifications: GitHubNotification[], filterExpression: string): GitHubNotification[] {
     if (!filterExpression || filterExpression.trim() === 'true') {
       return notifications

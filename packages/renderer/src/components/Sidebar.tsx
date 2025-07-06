@@ -62,7 +62,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   isSyncing = false,
 }) => {
   const [lastSyncDisplayText, setLastSyncDisplayText] = React.useState<string>(calculateLastSyncDisplayText(lastSyncTime))
-  console.log('Rendering Sidebar with lastSyncTime:', lastSyncTime?.toISOString())
 
   const handleInboxClick = (inbox: Inbox) => {
     onSelectInbox(inbox)

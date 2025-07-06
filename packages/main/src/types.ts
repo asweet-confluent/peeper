@@ -155,6 +155,12 @@ export interface NotificationFetchResult {
   notModified: boolean
 }
 
+export interface PaginatedNotificationsResult {
+  notifications: StoredNotification[]
+  totalCount: number
+  hasMore: boolean
+}
+
 export interface FilterContext {
   id: string
   subject_title: string

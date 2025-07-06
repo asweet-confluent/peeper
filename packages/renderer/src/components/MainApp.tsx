@@ -6,7 +6,6 @@ import NotificationList from './NotificationList.js'
 import PreferencesModal from './PreferencesModal.js'
 import Sidebar from './Sidebar.js'
 
-console.log(`Current date: ${new Date().toISOString()} `)
 const MainApp: React.FC = () => {
   const [notifications, setNotifications] = useState<StoredNotification[]>([])
   const [inboxes, setInboxes] = useState<Inbox[]>([])
@@ -86,36 +85,17 @@ const MainApp: React.FC = () => {
   }
 
   useEffect(() => {
-    console.log('Fetching last sync time on app load...')
     window.api.invoke.getLastSyncTime().then((newSyncTime) => {
-      console.log('Renderer MainApp received last sync time:', newSyncTime)
       if (newSyncTime) {
-        console.log('Setting last sync time state from MainApp', newSyncTime)
         setLastSyncTime(new Date(newSyncTime))
       }
       else {
-        console.log(`getLastSyncTime returned null, setting lastSyncTime state to null from MainApp`)
         setLastSyncTime(null)
       }
     }).catch((error) => {
       console.error('Error fetching last sync time:', error)
     })
   }, [])
-
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     updateLastSyncDisplay()
-  //   }, 10000)
-
-  //   const startLastSyncUpdateTimer = () => {
-  //   // Update the last sync display every 10 seconds to stay accurate with auto-sync
-  //     setLastSyncUpdateInterval(interval)
-  //   }
-
-  //   return () => {
-  //     clearInterval(interval)
-  //   }
-  // })
 
   useEffect(() => {
     // Listen for all sync completion events (both manual and automatic)
@@ -222,8 +202,9 @@ const MainApp: React.FC = () => {
         </div>
 
         <NotificationList
-          notifications={notifications}
           onMarkAsRead={markAsRead}
+          infiniteMode={true}
+          inboxId={currentInbox?.id}
         />
       </div>
 

@@ -67,6 +67,12 @@ export interface SyncResult {
   syncTime?: string // Added to support immediate sync time updates
 }
 
+export interface PaginatedNotificationsResult {
+  notifications: StoredNotification[]
+  totalCount: number
+  hasMore: boolean
+}
+
 export interface TokenTestResult {
   success: boolean
   user?: any

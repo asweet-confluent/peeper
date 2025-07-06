@@ -39,6 +39,10 @@ export function createApiImplementations(
       // Notification management
       getNotifications: () => dbManager.getNotifications(),
 
+      getNotificationsPaginated: async (_event: IpcMainInvokeEvent, page: number = 0, pageSize: number = 50) => {
+        return await dbManager.getNotificationsPaginated(page, pageSize)
+      },
+
       syncNotifications: async (): Promise<SyncResult> => {
         console.log('Starting notification sync...')
         const result = await notificationManager.syncNotifications()
@@ -78,6 +82,10 @@ export function createApiImplementations(
 
       getFilteredNotifications: async (_event: IpcMainInvokeEvent, inboxId: number): Promise<StoredNotification[]> => {
         return await notificationManager.getFilteredNotifications(inboxId)
+      },
+
+      getFilteredNotificationsPaginated: async (_event: IpcMainInvokeEvent, inboxId: number, page: number = 0, pageSize: number = 50) => {
+        return await notificationManager.getFilteredNotificationsPaginated(inboxId, page, pageSize)
       },
 
       // Username autocompletion
