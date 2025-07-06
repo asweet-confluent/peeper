@@ -5,6 +5,7 @@ import type { FilterContext, FilterTemplate, GitHubNotification, Inbox, StoredNo
 import * as path from 'node:path'
 import { Notification } from 'electron'
 import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { AppModule } from '../AppModule.js'
 import type { ModuleContext } from '../ModuleContext.js'
 import type { IpcBridgeApiEmitter } from '../Api.js'
@@ -185,7 +186,8 @@ export class NotificationManager {
     const title = `${inbox.name} - ${count} new notification${count > 1 ? 's' : ''}`
     const body = notifications.slice(0, 3).map(n => n.subject?.title || 'Unknown').join('\n')
 
-    const __dirname = dirname(__filename);
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = dirname(__filename)
     const notification = new Notification({
       title,
       body: body + (count > 3 ? `\n... and ${count - 3} more` : ''),
