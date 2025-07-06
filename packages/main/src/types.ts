@@ -140,7 +140,6 @@ export interface Inbox {
 
 export interface SyncResult {
   success: boolean
-  syncTime?: string // ISO string
   newCount?: number
   error?: string
 }

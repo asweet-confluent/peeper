@@ -61,6 +61,9 @@ export class NotificationManager {
 
   async syncNotifications(): Promise<SyncResult> {
     const result = await this.#syncNotifications()
+    if (result.success) {
+      await this.dbManager.saveLastSyncTime(new Date().toISOString())
+    }
     if (this.emitterApi && this.mainWindow) {
       this.emitterApi.send.syncCompleted(this.mainWindow, result)
     }
@@ -149,14 +152,9 @@ export class NotificationManager {
         await this.checkForNewNotifications(result.notifications)
       }
 
-      // Save last sync time
-      const syncTime = new Date().toISOString()
-      await this.dbManager.saveLastSyncTime(syncTime)
-
       return {
         success: true,
         newCount: result.notifications.length,
-        syncTime: syncTime,
       }
     }
     catch (error) {
