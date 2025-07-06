@@ -1,12 +1,32 @@
 import type { StoredNotification } from '../../../preload/src/types.js'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, memo, useCallback, useRef } from 'react'
+import { VariableSizeList as List } from 'react-window'
+
+// Constants for better maintainability
+const HEADER_HEIGHT = 80
+const DEFAULT_ITEM_HEIGHT = 175 // Initial estimate, will be measured dynamically
+const OVERSCAN_COUNT = 5
 
 interface NotificationListProps {
   notifications: StoredNotification[]
   onMarkAsRead: (notificationId: string) => void
 }
 
-const PRStatusBadge: React.FC<{ notification: StoredNotification }> = ({ notification }) => {
+interface NotificationItemProps {
+  index: number
+  style: React.CSSProperties
+  data: {
+    notifications: StoredNotification[]
+    onMarkAsRead: (notificationId: string) => void
+    formatDate: (dateString: string) => string
+    escapeHtml: (text: string) => string
+    handleNotificationClick: (url: string, notificationId: string, isUnread: boolean) => void
+    handleMarkAsReadClick: (e: React.MouseEvent, notificationId: string) => void
+    setItemHeight: (index: number, height: number) => void
+  }
+}
+
+const PRStatusBadge: React.FC<{ notification: StoredNotification }> = memo(({ notification }) => {
   if (notification.subject_type !== 'PullRequest') {
     return null
   }
@@ -41,12 +61,14 @@ const PRStatusBadge: React.FC<{ notification: StoredNotification }> = ({ notific
       {status}
     </span>
   )
-}
+})
 
-const AuthorSection: React.FC<{ notification: StoredNotification }> = ({ notification }) => {
+PRStatusBadge.displayName = 'PRStatusBadge'
+
+const AuthorSection: React.FC<{ notification: StoredNotification }> = memo(({ notification }) => {
   const [authorProfile, setAuthorProfile] = useState<any>(null)
 
-  const fetchUserProfile = async (username: string) => {
+  const fetchUserProfile = useCallback(async (username: string) => {
     try {
       const profile = await window.api.invoke.fetchUserProfile(username)
       if (profile) {
@@ -58,13 +80,13 @@ const AuthorSection: React.FC<{ notification: StoredNotification }> = ({ notific
       console.error('Error fetching user profile:', error)
     }
     return null
-  }
+  }, [])
 
   useEffect(() => {
     if (notification.subject_type === 'PullRequest' && notification.pr_author) {
       fetchUserProfile(notification.pr_author)
     }
-  }, [notification.pr_author, notification.subject_type])
+  }, [notification.pr_author, notification.subject_type, fetchUserProfile])
 
   if (notification.subject_type !== 'PullRequest' || !notification.pr_author) {
     return null
@@ -105,35 +127,171 @@ const AuthorSection: React.FC<{ notification: StoredNotification }> = ({ notific
       </div>
     )
   }
-}
+})
+
+AuthorSection.displayName = 'AuthorSection'
+
+const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, data }) => {
+  const { 
+    notifications, 
+    onMarkAsRead, 
+    formatDate, 
+    escapeHtml, 
+    handleNotificationClick, 
+    handleMarkAsReadClick,
+    setItemHeight
+  } = data
+  
+  const notification = notifications[index]
+  const itemRef = useRef<HTMLDivElement>(null)
+
+  // Measure the height after the component mounts/updates
+  useEffect(() => {
+    if (itemRef.current) {
+      const height = itemRef.current.offsetHeight
+      setItemHeight(index, height)
+    }
+  })
+
+  return (
+    <div style={style}>
+      <div
+        ref={itemRef}
+        className={`notification-item ${notification.unread ? 'unread' : ''}`}
+      >
+        <div className="notification-content">
+          <div className="notification-header">
+            <a
+              href="#"
+              className="notification-title"
+              onClick={(e) => {
+                e.preventDefault()
+                handleNotificationClick(notification.subject_url || '#', notification.id, !!notification.unread)
+              }}
+            >
+              {escapeHtml(notification.subject_title)}
+            </a>
+            <div className="notification-meta">
+              <span className="notification-type">{escapeHtml(notification.subject_type)}</span>
+              <PRStatusBadge notification={notification} />
+              <span className="notification-reason">{escapeHtml(notification.reason)}</span>
+            </div>
+          </div>
+          <div className="notification-meta">
+            <a
+              href="#"
+              className="notification-repository"
+              onClick={(e) => {
+                e.preventDefault()
+                window.api.invoke.openExternal(`https://github.com/${notification.repository_full_name}`)
+              }}
+            >
+              {escapeHtml(notification.repository_full_name)}
+            </a>
+            <span>{formatDate(notification.updated_at)}</span>
+          </div>
+          <div className="notification-actions">
+            {!!notification.unread && (
+              <button
+                type="button"
+                className="action-btn primary"
+                onClick={e => handleMarkAsReadClick(e, notification.id)}
+              >
+                Mark as Read
+              </button>
+            )}
+            <button
+              type="button"
+              className="action-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleNotificationClick(notification.subject_url || '#', notification.id, false)
+              }}
+            >
+              View
+            </button>
+          </div>
+          <AuthorSection notification={notification} />
+        </div>
+      </div>
+    </div>
+  )
+})
+
+NotificationItem.displayName = 'NotificationItem'
 
 const NotificationList: React.FC<NotificationListProps> = ({
   notifications,
   onMarkAsRead,
 }) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString()
-  }
+  const [containerHeight, setContainerHeight] = useState(window.innerHeight - HEADER_HEIGHT)
+  const listRef = useRef<any>(null)
+  const itemHeights = useRef<Map<number, number>>(new Map())
 
-  const escapeHtml = (text: string) => {
+  // Handle window resize to update container height and reset item sizes
+  useEffect(() => {
+    const handleResize = () => {
+      setContainerHeight(window.innerHeight - HEADER_HEIGHT)
+      // Clear cached heights on resize since content wrapping may change
+      itemHeights.current.clear()
+      if (listRef.current) {
+        listRef.current.resetAfterIndex(0)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Function to get the height of an item
+  const getItemSize = useCallback((index: number) => {
+    return itemHeights.current.get(index) || DEFAULT_ITEM_HEIGHT
+  }, [])
+
+  // Function to set item height after it's measured
+  const setItemHeight = useCallback((index: number, height: number) => {
+    if (itemHeights.current.get(index) !== height) {
+      itemHeights.current.set(index, height)
+      if (listRef.current) {
+        listRef.current.resetAfterIndex(index)
+      }
+    }
+  }, [])
+
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleString()
+  }, [])
+
+  const escapeHtml = useCallback((text: string) => {
     const div = document.createElement('div')
     div.textContent = text
     return div.innerHTML
-  }
+  }, [])
 
-  const handleNotificationClick = (url: string, notificationId: string, isUnread: boolean) => {
+  const handleNotificationClick = useCallback((url: string, notificationId: string, isUnread: boolean) => {
     if (url && url !== '#') {
       window.api.invoke.openExternal(url)
       if (isUnread) {
         onMarkAsRead(notificationId)
       }
     }
-  }
+  }, [onMarkAsRead])
 
-  const handleMarkAsReadClick = (e: React.MouseEvent, notificationId: string) => {
+  const handleMarkAsReadClick = useCallback((e: React.MouseEvent, notificationId: string) => {
     e.stopPropagation()
     onMarkAsRead(notificationId)
-  }
+  }, [onMarkAsRead])
+
+  // Memoize the data object to prevent unnecessary re-renders
+  const itemData = React.useMemo(() => ({
+    notifications,
+    onMarkAsRead,
+    formatDate,
+    escapeHtml,
+    handleNotificationClick,
+    handleMarkAsReadClick,
+    setItemHeight
+  }), [notifications, onMarkAsRead, formatDate, escapeHtml, handleNotificationClick, handleMarkAsReadClick, setItemHeight])
 
   if (notifications.length === 0) {
     return (
@@ -148,69 +306,19 @@ const NotificationList: React.FC<NotificationListProps> = ({
 
   return (
     <div className="notification-list">
-      {notifications.map(notification => (
-        <div
-          key={notification.id}
-          className={`notification-item ${notification.unread ? 'unread' : ''}`}
-        >
-          <div className="notification-content">
-            <div className="notification-header">
-              <a
-                href="#"
-                className="notification-title"
-                onClick={(e) => {
-                  e.preventDefault()
-                  handleNotificationClick(notification.subject_url || '#', notification.id, !!notification.unread)
-                }}
-              >
-                {escapeHtml(notification.subject_title)}
-              </a>
-              <div className="notification-meta">
-                <span className="notification-type">{escapeHtml(notification.subject_type)}</span>
-                <PRStatusBadge notification={notification} />
-                <span className="notification-reason">{escapeHtml(notification.reason)}</span>
-              </div>
-            </div>
-            <div className="notification-meta">
-              <a
-                href="#"
-                className="notification-repository"
-                onClick={(e) => {
-                  e.preventDefault()
-                  window.api.invoke.openExternal(`https://github.com/${notification.repository_full_name}`)
-                }}
-              >
-                {escapeHtml(notification.repository_full_name)}
-              </a>
-              <span>{formatDate(notification.updated_at)}</span>
-            </div>
-            <div className="notification-actions">
-              {!!notification.unread && (
-                <button
-                  type="button"
-                  className="action-btn primary"
-                  onClick={e => handleMarkAsReadClick(e, notification.id)}
-                >
-                  Mark as Read
-                </button>
-              )}
-              <button
-                type="button"
-                className="action-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleNotificationClick(notification.subject_url || '#', notification.id, false)
-                }}
-              >
-                View
-              </button>
-            </div>
-            <AuthorSection notification={notification} />
-          </div>
-        </div>
-      ))}
+      <List
+        ref={listRef}
+        height={containerHeight}
+        width="100%"
+        itemCount={notifications.length}
+        itemSize={getItemSize}
+        itemData={itemData}
+        overscanCount={OVERSCAN_COUNT}
+      >
+        {NotificationItem}
+      </List>
     </div>
   )
 }
 
-export default React.memo(NotificationList)
+export default memo(NotificationList)

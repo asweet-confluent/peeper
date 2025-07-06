@@ -339,9 +339,9 @@ body {
 
 .notification-list {
   flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
   height: calc(100vh - 80px); /* Adjust based on header height */
+  overflow: hidden; /* Let react-window handle scrolling */
+  padding: 0 1rem; /* Add horizontal padding to the container instead */
 }
 
 .notification-item {
@@ -349,9 +349,11 @@ body {
   border: 1px solid #30363d;
   border-radius: 8px;
   padding: 1rem;
-  margin-bottom: 0.75rem;
+  margin: 4px 0; /* Further reduced margin for tighter spacing */
   transition: border-color 0.2s;
   position: relative;
+  box-sizing: border-box;
+  height: auto; /* Allow content to determine height naturally */
 }
 
 .notification-content {
