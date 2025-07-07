@@ -1,240 +1,190 @@
 # Peeper - GitHub Notifications
 
-A comprehensive Electron application for managing GitHub notifications with powerful filtering and desktop notification capabilities, built with TypeScript for enhanced type safety and developer experience.
+A desktop application for managing GitHub notifications with advanced filtering and organization capabilities.
 
-## 🚀 Features
+## Overview
 
-- **🔐 Secure Token Management**: Encrypted storage of GitHub personal access tokens
-- **📊 SQLite Database**: Local storage for notifications, inboxes, and configuration
-- **📱 Smart API Integration**: Efficient polling with `Last-Modified` headers and `X-Poll-Interval` respect
-- **📥 Powerful Inbox System**: Create custom inboxes with expressive filter language
-- **🔔 Desktop Notifications**: Configurable per-inbox notifications
-- **🎨 Modern UI**: Dark GitHub-themed interface
-- **⚡ Advanced Filtering**: Boolean logic, text functions, and field comparisons
+Peeper is an Electron-based desktop application that provides a powerful interface for managing your GitHub notifications. It allows you to organize notifications into custom inboxes with sophisticated filtering capabilities, ensuring you never miss important updates while keeping your workflow organized.
 
-## 🛠️ TypeScript Migration
+## Key Features
 
-This project has been converted from JavaScript to TypeScript, providing:
+### 🔔 **Smart Notification Management**
+- **Automatic Sync**: Configurable background synchronization with GitHub (1 minute to 1 hour intervals)
+- **Desktop Notifications**: Optional system notifications for new GitHub notifications
+- **Unread Tracking**: Keep track of read/unread status across all your notifications
+- **Mark as Done**: Additional workflow state to help manage completed items
 
-- **Type Safety**: Comprehensive type definitions for all data structures
-- **Better IDE Support**: Enhanced IntelliSense and code completion
-- **Compile-time Error Detection**: Catch errors before runtime
-- **Improved Maintainability**: Self-documenting code with type annotations
+### 📬 **Custom Inboxes**
+- **Flexible Filtering**: Create custom inboxes using powerful filter expressions
+- **Filter Templates**: Pre-built templates for common notification types (Pull Requests, Issues, Mentions, etc.)
+- **Desktop Notifications Per Inbox**: Enable/disable desktop notifications for each inbox individually
+- **Quick Filter Templates**: Common filters like "Pull Requests", "Review Requests", "Mentions", and more
 
-### Project Structure
+### 🎯 **Advanced Filtering System**
+- **Rich Filter Language**: Support for complex boolean expressions with AND/OR operators
+- **Multiple Field Support**: Filter by repository, author, subject type, reason, and more
+- **Available Filter Fields**:
 
+#### Basic Notification Fields
+  - `subject_title` - Title of the notification subject
+  - `subject_type` - Type: Issue, PullRequest, Release, Commit, Discussion, etc.
+  - `repository_name` - Repository name only
+  - `repository_owner` - Repository owner username
+  - `repository_full_name` - Full repository name (owner/repo)
+  - `reason` - Notification reason: assign, author, comment, mention, review_requested, team_mention, etc.
+  - `unread` - Whether notification is unread (true/false)
+  - `updated_at` - When the notification was last updated
+  - `done` - User-defined workflow state (true/false)
+
+#### Pull Request Specific Fields
+  - `pr_number` - Pull request number
+  - `pr_author` - Username of the pull request author
+  - `pr_state` - Pull request state: open, closed
+  - `pr_merged` - Whether the pull request is merged (true/false)
+  - `pr_draft` - Whether the pull request is a draft (true/false)
+  - `pr_assignees` - JSON array of usernames assigned to the PR
+  - `pr_requested_reviewers` - JSON array of usernames requested as reviewers
+  - `pr_requested_teams` - JSON array of team names requested as reviewers
+  - `pr_labels` - JSON array of label names on the PR
+  - `pr_head_ref` - Head branch name of the PR
+  - `pr_base_ref` - Base branch name of the PR
+  - `pr_head_repo` - Full name of the head repository
+  - `pr_base_repo` - Full name of the base repository
+
+#### User Context Fields
+  - `current_user_is_reviewer` - Whether you are requested as a reviewer (true/false)
+  - `current_user_team_is_reviewer` - Whether one of your teams is requested as reviewer (true/false)
+
+#### Available Functions
+  - `contains(field, "text")` - Check if field contains substring
+  - `startsWith(field, "text")` - Check if field starts with substring
+  - `endsWith(field, "text")` - Check if field ends with substring
+  - `matches(field, "regex")` - Check if field matches regex pattern
+  - `includes(array_field, "value")` - Check if array field includes value (for PR arrays)
+
+#### Supported Operators
+  - `===` or `==` - Equality comparison
+  - `!==` or `!=` - Inequality comparison
+  - `>`, `>=`, `<`, `<=` - Numeric comparisons
+  - `AND` or `&&` - Logical AND
+  - `OR` or `||` - Logical OR
+  - `NOT` or `!` - Logical NOT
+
+### ⚡ **Quick Filters**
+- **Hide Read Notifications**: Quickly filter out already read items
+- **Hide Merged PRs**: Remove merged pull requests from view
+- **Hide Draft PRs**: Filter out draft pull requests
+- **Hide Done Items**: Remove completed items from view
+- **Per-Inbox Configuration**: Each inbox can have its own quick filter settings
+
+### 🎨 **User Experience**
+- **Modern UI**: Clean, GitHub-inspired dark theme interface
+- **Pagination**: Efficient loading of large notification lists
+- **Context Menus**: Right-click to edit or delete inboxes
+- **Keyboard Shortcuts**: Efficient navigation and management
+- **Responsive Design**: Optimized for various screen sizes
+
+### 🔧 **Configuration & Preferences**
+- **Auto-Sync Settings**: Enable/disable automatic synchronization
+- **Sync Intervals**: Choose from 1 minute to 1 hour sync intervals
+- **Desktop Notifications**: Global toggle for system notifications
+- **Sound Notifications**: Optional notification sounds
+- **GitHub Token Management**: Secure token storage and validation
+
+## Installation
+
+1. Download the latest release for your platform
+2. Install the application following your operating system's standard procedure
+3. Launch Peeper and provide your GitHub Personal Access Token
+
+## GitHub Token Setup
+
+1. Go to GitHub → Settings → Developer settings → Personal access tokens
+2. Generate a new token with the following permissions:
+   - `notifications` - Read and write access to notifications
+   - `repo` - Repository access (for private repositories)
+3. Copy the token and paste it into Peeper when prompted
+
+## Usage
+
+### Creating Your First Inbox
+
+1. Click "Add Inbox" in the sidebar
+2. Give your inbox a descriptive name
+3. Create a filter expression (or use a template)
+4. Optionally enable desktop notifications for this inbox
+5. Click "Create" to save
+
+### Example Filter Expressions
+
+```javascript
+// All pull request notifications
+subject_type === "PullRequest"
+
+// Pull requests where you're requested to review
+reason === "review_requested"
+
+// Mentions in a specific repository
+reason === "mention" AND repository_full_name === "microsoft/vscode"
+
+// Open pull requests assigned to you
+subject_type === "PullRequest" AND pr_state === "open" AND reason === "assign"
+
+// All notifications except drafts
+subject_type !== "PullRequest" OR pr_draft !== true
+
+// Pull requests from a specific author
+subject_type === "PullRequest" AND pr_author === "octocat"
+
+// Pull requests assigned to a specific user
+subject_type === "PullRequest" AND includes(pr_assignees, "username")
+
+// Pull requests where you or your team are reviewing
+subject_type === "PullRequest" AND (current_user_is_reviewer OR current_user_team_is_reviewer)
+
+// Issues with specific labels
+subject_type === "Issue" AND includes(pr_labels, "bug")
+
+// Notifications from repositories containing "react"
+contains(repository_name, "react")
+
+// Pull requests targeting main branch
+subject_type === "PullRequest" AND pr_base_ref === "main"
+
+// Unread notifications that aren't done
+unread === true AND done !== true
 ```
-peeper/
-├── src/
-│   ├── types.ts                 # TypeScript type definitions
-│   ├── database.ts              # SQLite database management
-│   ├── github-api.ts            # GitHub API integration
-│   ├── notification-manager.ts  # Filtering and notifications
-│   ├── preload.ts              # Secure IPC bridge
-│   └── renderer/               # React-based frontend
-│       ├── index.tsx           # Application entry point
-│       ├── index.html          # HTML template
-│       ├── styles.css          # Modern dark theme
-│       ├── types.ts            # Renderer type definitions
-│       └── components/         # React components
-│           ├── MainApp.tsx     # Main application component
-│           ├── NotificationList.tsx # Notification display with PR status
-│           ├── Sidebar.tsx     # Sidebar with inboxes
-│           ├── InboxModal.tsx  # Inbox creation/editing
-│           ├── PreferencesModal.tsx # Settings modal
-│           └── FilterAutocomplete.tsx # Smart filtering UI
-├── dist/                       # Compiled JavaScript output
-├── main.ts                    # Electron main process
-├── package.json               # Dependencies and scripts
-├── webpack.config.js          # React build configuration
-└── tsconfig.json              # TypeScript configuration
-```
 
-## 📋 Requirements
+### Managing Notifications
 
-- Node.js (with npm)
-- TypeScript (installed as dev dependency)
-- GitHub Personal Access Token with `notifications` scope
+- **Mark as Read**: Click on individual notifications to mark them as read
+- **Mark as Done**: Use the workflow state to track completed items
+- **Quick Filters**: Use the filter dropdown to quickly hide read, merged, or draft items
+- **Sync**: Click the sync button to manually fetch new notifications
 
-## 🚀 Getting Started
+## Technical Details
 
-1. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
+- **Built with**: Electron, React, TypeScript, and Vite
+- **Database**: SQLite for local storage
+- **GitHub API**: Uses GitHub's REST API for notification fetching
+- **Auto-Updates**: Built-in update system for seamless upgrades
 
-2. **Build TypeScript**:
-   ```bash
-   npm run build
-   ```
+## Development
 
-3. **Start the Application**:
-   ```bash
-   npm start
-   ```
+This is a multi-package workspace built with:
+- **Main Process**: Electron main process (Node.js)
+- **Renderer Process**: React frontend with TypeScript
+- **Preload Script**: Secure bridge between main and renderer
 
-## 📦 Installation
+### Build Scripts
 
-### Pre-built Releases
-
-Download the latest release for your platform:
-
-- **Windows**: Download the `.exe` installer from [Releases](../../releases/latest)
-- **macOS**: Download the `.dmg` file from [Releases](../../releases/latest)
-- **Linux**: Download the `.deb` package or `.AppImage` from [Releases](../../releases/latest)
-
-### Installation Instructions
-
-#### Windows
-1. Download the `.exe` file
-2. Run the installer and follow the setup wizard
-
-#### macOS
-1. Download the `.dmg` file
-2. Open the DMG and drag the app to your Applications folder
-
-#### Linux
-**For .deb (Debian/Ubuntu):**
 ```bash
-sudo dpkg -i peeper-*.deb
-# If there are dependency issues:
-sudo apt-get install -f
+npm run build      # Build all packages
+npm run dev        # Start development server
+npm run compile    # Create distributable packages
+npm run test       # Run tests
 ```
 
-**For .AppImage:**
-```bash
-chmod +x peeper-*.AppImage
-./peeper-*.AppImage
-```
+## License
 
-## 🔧 Development
-
-### Available Scripts
-
-- `npm run build` - Compile TypeScript to JavaScript
-- `npm run watch` - Watch mode for TypeScript compilation
-- `npm start` - Build and start the application
-- `npm run dev` - Build and start in development mode
-- `npm run compile` - Build and package the Electron app
-- `npm run compile:win` - Build for Windows (cross-platform)
-- `npm run compile:mac` - Build for macOS (requires macOS)
-- `npm run compile:linux` - Build for Linux (cross-platform)
-- `npm run dist:all` - Build for all platforms
-- `npm run prepare-release` - Prepare a new release
-
-### Building and Releasing
-
-This project includes automated CI/CD with GitHub Actions:
-
-#### Automated Releases
-1. **Prepare a release:**
-   ```bash
-   npm run prepare-release 1.0.1
-   ```
-
-2. **Push to trigger build:**
-   ```bash
-   git push origin main
-   git push origin v1.0.1
-   ```
-
-3. **Monitor:** GitHub Actions will automatically build for all platforms and create a release.
-
-#### Manual Build Testing
-Test builds locally before releasing:
-```bash
-npm run build              # Test TypeScript compilation
-npm run compile            # Test Electron packaging
-npm run compile:win        # Test Windows build
-npm run compile:linux      # Test Linux build
-```
-
-For detailed CI/CD information, see [GitHub Actions Setup](.github/README.md).
-
-### VS Code Tasks
-
-The project includes VS Code tasks for:
-- **Build TypeScript**: Compile the project
-- **Watch TypeScript**: Run TypeScript in watch mode
-- **Start Peeper**: Build and run the application
-
-### TypeScript Configuration
-
-The project uses a comprehensive TypeScript configuration (`tsconfig.json`) with:
-- **Target**: ES2020
-- **Module**: CommonJS
-- **Strict Mode**: Enabled
-- **Source Maps**: Generated for debugging
-- **Declaration Files**: Support for external modules
-
-## 📖 Type Definitions
-
-### Core Types
-
-- `GitHubNotification`: Raw notification data from GitHub API
-- `StoredNotification`: Database-stored notification format
-- `Inbox`: Inbox configuration with filtering
-- `FilterContext`: Context object for filter evaluation
-- `SyncResult`: Result of notification synchronization
-- `TokenTestResult`: GitHub token validation result
-
-### Filter Language
-
-The application supports a powerful filter language with:
-
-- **Field Access**: `subject_title`, `subject_type`, `repository_name`, etc.
-- **Boolean Logic**: `AND`, `OR`, `NOT`
-- **Text Functions**: `contains()`, `startsWith()`, `endsWith()`, `matches()`
-- **Comparisons**: `===`, `!==`
-
-### Example Filters
-
-```typescript
-// Unread pull requests
-'unread AND subject_type === \'PullRequest\''
-
-// Specific repository
-'repository_full_name === \'owner/repo\''
-
-// Contains text in title
-'contains(subject_title, \'urgent\')'
-
-// Multiple conditions
-'reason === \'mention\' OR (unread AND subject_type === \'Issue\')'
-```
-
-## 🔒 Security
-
-- **Token Encryption**: GitHub tokens are encrypted using crypto-js
-- **Context Isolation**: Renderer process runs in isolated context
-- **Secure IPC**: All main-renderer communication through typed IPC handlers
-
-## 🎯 First Time Setup
-
-1. Launch the application
-2. Enter your GitHub Personal Access Token
-3. The app will validate and securely store the token
-4. Create custom inboxes with filters
-5. Configure desktop notifications as needed
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **npm not recognized**: Run `refreshenv` in PowerShell before npm commands
-2. **Build errors**: Ensure all TypeScript dependencies are installed
-3. **Token issues**: Verify token has `notifications` scope
-
-### Development Tips
-
-- Use `npm run watch` during development for automatic compilation
-- Check the `dist/` folder for compiled JavaScript output
-- Use VS Code tasks for streamlined development workflow
-
-## 📝 License
-
-ISC License
-
-## 🤝 Contributing
-
-Contributions are welcome! Please ensure TypeScript code follows the existing patterns and includes proper type annotations.
+Licensed under the Apache License 2.0. See LICENSE file for details.

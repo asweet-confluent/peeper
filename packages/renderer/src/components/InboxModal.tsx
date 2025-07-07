@@ -135,39 +135,142 @@ const InboxModal: React.FC<InboxModalProps> = ({
                 <details>
                   <summary>Available fields and examples</summary>
                   <div className="filter-help-content">
-                    <p><strong>Available fields:</strong></p>
+                    <p><strong>Basic Notification Fields:</strong></p>
                     <ul>
                       <li>
-                        <code>reason</code>
+                        <code>subject_title</code>
                         {' '}
-                        - assign, author, comment, mention, review_requested, etc.
+                        - Title of the notification subject
                       </li>
                       <li>
                         <code>subject_type</code>
                         {' '}
-                        - PullRequest, Issue, Release, etc.
+                        - Issue, PullRequest, Release, Commit, Discussion, etc.
                       </li>
                       <li>
                         <code>repository_name</code>
                         {' '}
-                        - Repository name
+                        - Repository name only
                       </li>
                       <li>
                         <code>repository_owner</code>
                         {' '}
-                        - Repository owner
+                        - Repository owner username
                       </li>
                       <li>
-                        <code>subject_title</code>
+                        <code>repository_full_name</code>
                         {' '}
-                        - Notification title
+                        - Full repository name (owner/repo)
+                      </li>
+                      <li>
+                        <code>reason</code>
+                        {' '}
+                        - assign, author, comment, mention, review_requested, team_mention, etc.
+                      </li>
+                      <li>
+                        <code>unread</code>
+                        {' '}
+                        - Whether notification is unread (true/false)
+                      </li>
+                      <li>
+                        <code>updated_at</code>
+                        {' '}
+                        - When the notification was last updated
+                      </li>
+                      <li>
+                        <code>done</code>
+                        {' '}
+                        - User-defined workflow state (true/false)
                       </li>
                     </ul>
+                    
+                    <p><strong>Pull Request Fields:</strong></p>
+                    <ul>
+                      <li>
+                        <code>pr_number</code>
+                        {' '}
+                        - Pull request number
+                      </li>
+                      <li>
+                        <code>pr_author</code>
+                        {' '}
+                        - Username of the PR author
+                      </li>
+                      <li>
+                        <code>pr_state</code>
+                        {' '}
+                        - open, closed
+                      </li>
+                      <li>
+                        <code>pr_merged</code>
+                        {' '}
+                        - Whether the PR is merged (true/false)
+                      </li>
+                      <li>
+                        <code>pr_draft</code>
+                        {' '}
+                        - Whether the PR is a draft (true/false)
+                      </li>
+                      <li>
+                        <code>pr_assignees</code>
+                        {' '}
+                        - Array of assigned usernames
+                      </li>
+                      <li>
+                        <code>pr_requested_reviewers</code>
+                        {' '}
+                        - Array of requested reviewer usernames
+                      </li>
+                      <li>
+                        <code>pr_requested_teams</code>
+                        {' '}
+                        - Array of requested team names
+                      </li>
+                      <li>
+                        <code>pr_labels</code>
+                        {' '}
+                        - Array of label names
+                      </li>
+                      <li>
+                        <code>pr_head_ref</code>
+                        {' '}
+                        - Head branch name
+                      </li>
+                      <li>
+                        <code>pr_base_ref</code>
+                        {' '}
+                        - Base branch name
+                      </li>
+                      <li>
+                        <code>current_user_is_reviewer</code>
+                        {' '}
+                        - Whether you are requested as reviewer (true/false)
+                      </li>
+                      <li>
+                        <code>current_user_team_is_reviewer</code>
+                        {' '}
+                        - Whether your team is requested as reviewer (true/false)
+                      </li>
+                    </ul>
+
+                    <p><strong>Functions:</strong></p>
+                    <ul>
+                      <li><code>contains(field, "text")</code> - Check if field contains substring</li>
+                      <li><code>startsWith(field, "text")</code> - Check if field starts with substring</li>
+                      <li><code>endsWith(field, "text")</code> - Check if field ends with substring</li>
+                      <li><code>matches(field, "regex")</code> - Check if field matches regex pattern</li>
+                      <li><code>includes(array_field, "value")</code> - Check if array includes value</li>
+                    </ul>
+                    
                     <p><strong>Examples:</strong></p>
                     <ul>
                       <li><code>reason === "review_requested"</code></li>
                       <li><code>subject_type === "PullRequest" AND reason === "mention"</code></li>
                       <li><code>repository_owner === "microsoft"</code></li>
+                      <li><code>includes(pr_assignees, "username")</code></li>
+                      <li><code>contains(repository_name, "react")</code></li>
+                      <li><code>pr_state === "open" AND pr_draft !== true</code></li>
+                      <li><code>current_user_is_reviewer OR current_user_team_is_reviewer</code></li>
                     </ul>
                   </div>
                 </details>
