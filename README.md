@@ -2,6 +2,8 @@
 
 A desktop application for managing GitHub notifications with advanced filtering and organization capabilities.
 
+![Peeper Screenshot](peeper-screenshot.png)
+
 ## Overview
 
 Peeper is an Electron-based desktop application that provides a powerful interface for managing your GitHub notifications. It allows you to organize notifications into custom inboxes with sophisticated filtering capabilities, ensuring you never miss important updates while keeping your workflow organized.
