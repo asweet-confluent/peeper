@@ -1,5 +1,7 @@
 import type { Inbox } from '../../../preload/src/types.js'
-import React, { useEffect } from 'react'
+import React, { forwardRef, useEffect, useRef, useState } from 'react'
+import { usePeeperStore } from './store.js'
+import ContextMenu from './ContextMenu.js'
 
 const msInSecond = 1000
 const msInMinute = 60 * msInSecond
@@ -43,8 +45,6 @@ interface SidebarProps {
   onSelectInbox: (inbox: Inbox | null) => void
   onSyncButtonClick: () => void
   onCreateInbox: () => void
-  onEditInbox: (inbox: Inbox) => void
-  onDeleteInbox: (inbox: Inbox) => void
   onShowPreferences: () => void
   isSyncing?: boolean
 }
@@ -56,12 +56,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSelectInbox,
   onSyncButtonClick,
   onCreateInbox,
-  onEditInbox,
-  onDeleteInbox,
   onShowPreferences,
   isSyncing = false,
 }) => {
   const [lastSyncDisplayText, setLastSyncDisplayText] = React.useState<string>(calculateLastSyncDisplayText(lastSyncTime))
+  const contextMenu = usePeeperStore.use.contextMenu()
+  const enableContextMenu = usePeeperStore.use.enableContextMenu()
+  const disableContextMenu = usePeeperStore.use.disableContextMenu()
+
+  const contextMenuRef = useRef<HTMLDivElement>(null)
 
   const handleInboxClick = (inbox: Inbox) => {
     onSelectInbox(inbox)
@@ -75,53 +78,33 @@ const Sidebar: React.FC<SidebarProps> = ({
     e.preventDefault()
     e.stopPropagation()
 
-    const contextMenu = document.createElement('div')
-    contextMenu.className = 'context-menu'
-    contextMenu.innerHTML = `
-      <div class="context-menu-item" data-action="edit">Edit</div>
-      <div class="context-menu-item" data-action="delete">Delete</div>
-    `
+    // const handleOutsideClick = (event: MouseEvent) => {
+    //   console.log(`Target clicked: `)
+    //   console.log(event.target)
+    //   console.log(`Context menu ref: `)
+    //   console.log(contextMenuRef.current)
+    //   if (!contextMenuRef.current) {
+    //     console.warn('Detected an outside click ')
+    //   }
+    //   if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+    //     console.log('Click outside context menu, disabling it')
+    //     disableContextMenu()
+    //   } else {
+    //     console.log('Click inside context menu, keeping it open')
+    //   }
+    // }
 
-    contextMenu.style.position = 'fixed'
-    contextMenu.style.left = `${e.clientX}px`
-    contextMenu.style.top = `${e.clientY}px`
-    contextMenu.style.zIndex = '1000'
+    // setTimeout(() => {
+    //   document.addEventListener('click', handleOutsideClick)
+    // }, 0)
 
-    document.body.appendChild(contextMenu)
-
-    const handleContextMenuClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement
-      const action = target.getAttribute('data-action')
-
-      if (action === 'edit') {
-        onEditInbox(inbox)
-      }
-      else if (action === 'delete') {
-        onDeleteInbox(inbox)
-      }
-
-      document.body.removeChild(contextMenu)
-      document.removeEventListener('click', handleContextMenuClick)
-    }
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (!contextMenu.contains(event.target as Node)) {
-        document.body.removeChild(contextMenu)
-        document.removeEventListener('click', handleOutsideClick)
-      }
-    }
-
-    setTimeout(() => {
-      document.addEventListener('click', handleOutsideClick)
-    }, 0)
-
-    contextMenu.addEventListener('click', handleContextMenuClick)
+    enableContextMenu(e.clientX, e.clientY, inbox)
   }
 
   useEffect(() => {
     // Update immediately when lastSyncTime changes
     setLastSyncDisplayText(calculateLastSyncDisplayText(lastSyncTime))
-    
+
     const interval = setInterval(() => {
       const newLastSyncText = calculateLastSyncDisplayText(lastSyncTime)
       setLastSyncDisplayText(newLastSyncText)
@@ -134,6 +117,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div className="sidebar">
+      {contextMenu.visible && (
+        <ContextMenu ref={contextMenuRef} />
+      )}
       <div className="sidebar-header">
         <h2>Inboxes</h2>
         <div className="sync-section">

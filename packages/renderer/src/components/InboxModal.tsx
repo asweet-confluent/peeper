@@ -1,21 +1,24 @@
 import type { Inbox } from '../../../preload/src/types.js'
 import React, { useEffect, useState } from 'react'
 import FilterAutocomplete from './FilterAutocomplete.js'
+import { usePeeperStore } from './store.js'
 
 interface InboxModalProps {
-  inbox: Inbox | null
-  onSave: (inbox: Inbox) => void
-  onCancel: () => void
 }
 
-const InboxModal: React.FC<InboxModalProps> = ({
-  inbox,
-  onSave,
-  onCancel,
-}) => {
+const InboxModal: React.FC<InboxModalProps> = ({}) => {
   const [name, setName] = useState('')
   const [filterExpression, setFilterExpression] = useState('')
   const [desktopNotifications, setDesktopNotifications] = useState(false)
+  
+  const inbox = usePeeperStore.use.editingInbox()
+  const onSave = usePeeperStore.use.saveInbox()
+  const setEditingInbox = usePeeperStore.use.setEditingInbox()
+  const setShowInboxModal = usePeeperStore.use.setShowInboxModal()
+  const onCancel = () => {
+    setEditingInbox(null)
+    setShowInboxModal(false)
+  }
 
   useEffect(() => {
     if (inbox) {
@@ -130,6 +133,7 @@ const InboxModal: React.FC<InboxModalProps> = ({
                 onChange={setFilterExpression}
                 placeholder="Enter filter expression (e.g., reason === 'review_requested')"
                 rows={3}
+                required={true}
               />
               <div className="filter-help">
                 <details>

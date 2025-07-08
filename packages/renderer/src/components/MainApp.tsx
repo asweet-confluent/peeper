@@ -6,16 +6,25 @@ import NotificationList from './NotificationList.js'
 import PreferencesModal from './PreferencesModal.js'
 import QuickFiltersDropdown from './QuickFiltersDropdown.js'
 import Sidebar from './Sidebar.js'
+import { usePeeperStore } from './store.js'
 
 const MainApp: React.FC = () => {
-  const [inboxes, setInboxes] = useState<Inbox[]>([])
-  const [currentInbox, setCurrentInbox] = useState<Inbox | null>(null)
-  const [showInboxModal, setShowInboxModal] = useState(false)
-  const [showPreferencesModal, setShowPreferencesModal] = useState(false)
-  const [editingInbox, setEditingInbox] = useState<Inbox | null>(null)
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
-  const [isSyncing, setIsSyncing] = useState(false)
+  const inboxes = usePeeperStore.use.inboxes()
+  const setInboxes = usePeeperStore.use.setInboxes()
+  const currentInbox = usePeeperStore.use.currentInbox()
+  const setCurrentInbox = usePeeperStore.use.setCurrentInbox()
+  const showInboxModal = usePeeperStore.use.showInboxModal()
+  const setShowInboxModal = usePeeperStore.use.setShowInboxModal()
+  const showPreferencesModal = usePeeperStore.use.showPreferencesModal()
+  const setShowPreferencesModal = usePeeperStore.use.setShowPreferencesModal()
+  const editingInbox = usePeeperStore.use.editingInbox()
+  const setEditingInbox = usePeeperStore.use.setEditingInbox()
+  const lastSyncTime = usePeeperStore.use.lastSyncTime()
+  const setLastSyncTime = usePeeperStore.use.setLastSyncTime()
+  const isSyncing = usePeeperStore.use.isSyncing()
+  const setIsSyncing = usePeeperStore.use.setIsSyncing()
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+
 
   useEffect(() => {
     const handleGetInboxesResponse = async (inboxes: Inbox[]) => {
@@ -113,6 +122,7 @@ const MainApp: React.FC = () => {
   }, []) // No dependencies - set up once only
 
   const handleCreateInbox = () => {
+    console.log('Creating new inbox')
     setEditingInbox(null)
     setShowInboxModal(true)
   }
@@ -122,18 +132,9 @@ const MainApp: React.FC = () => {
     setShowInboxModal(true)
   }
 
-  const handleDeleteInbox = async (inbox: Inbox) => {
-    if (inbox.id && confirm(`Are you sure you want to delete "${inbox.name}"?`)) {
-      await window.api.invoke.deleteInbox(inbox.id)
-      if (currentInbox?.id === inbox.id) {
-        setCurrentInbox(null)
-      }
-      // Remove it from the state
-      setInboxes(inboxes.filter(i => i.id !== inbox.id))
-    }
-  }
 
   const handleSaveInbox = async (inbox: Inbox) => {
+    console.log('Saving inbox:', inbox) 
     try {
       if (editingInbox && editingInbox.id) {
         inbox.id = editingInbox.id
@@ -143,6 +144,7 @@ const MainApp: React.FC = () => {
         await window.api.invoke.createInbox(inbox)
       }
       setShowInboxModal(false)
+      setEditingInbox(null)
     }
     catch (error) {
       console.error('Error saving inbox:', error)
@@ -166,8 +168,6 @@ const MainApp: React.FC = () => {
         onSelectInbox={setCurrentInbox}
         onSyncButtonClick={syncNotifications}
         onCreateInbox={handleCreateInbox}
-        onEditInbox={handleEditInbox}
-        onDeleteInbox={handleDeleteInbox}
         onShowPreferences={() => setShowPreferencesModal(true)}
         isSyncing={isSyncing}
       />
@@ -189,11 +189,7 @@ const MainApp: React.FC = () => {
       </div>
 
       {showInboxModal && (
-        <InboxModal
-          inbox={editingInbox}
-          onSave={handleSaveInbox}
-          onCancel={() => setShowInboxModal(false)}
-        />
+        <InboxModal />
       )}
 
       {showPreferencesModal && (

@@ -6,6 +6,7 @@ interface AutocompleteProps {
   onChange: (value: string) => void
   placeholder?: string
   rows?: number
+  required?: boolean
 }
 
 const FilterAutocomplete: React.FC<AutocompleteProps> = ({
@@ -13,6 +14,7 @@ const FilterAutocomplete: React.FC<AutocompleteProps> = ({
   onChange,
   placeholder,
   rows = 3,
+  required = false
 }) => {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestions, setSuggestions] = useState<AutocompleteItem[]>([])
@@ -381,6 +383,7 @@ const FilterAutocomplete: React.FC<AutocompleteProps> = ({
         placeholder={placeholder}
         rows={rows}
         className="filter-input"
+        required={required}
       />
 
       {showSuggestions && suggestions.length > 0 && (

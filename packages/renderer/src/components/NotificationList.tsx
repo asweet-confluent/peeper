@@ -14,21 +14,21 @@ const convertApiUrlToBrowserUrl = (apiUrl: string): string => {
 
   // Handle issues and pull requests: https://api.github.com/repos/owner/repo/(issues|pulls)/123
   if (/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+\/(issues|pulls)\/[0-9]+$/.test(apiUrl)) {
-    return apiUrl.replace(/^https:\/\/api\.github\.com\/repos\//, 'https://github.com/')
+    return apiUrl.replace(/^https:\/\/api\.github\.com\/repos\//, 'https://github.com/').replace(/pulls/, 'pull')
   }
-  
+
   // Handle issue comments: https://api.github.com/repos/owner/repo/issues/comments/123
   const issueCommentMatch = apiUrl.match(/^https:\/\/api\.github\.com\/repos\/([^/]+\/[^/]+)\/issues\/comments\/([0-9]+)$/)
   if (issueCommentMatch) {
     const [, repo, commentId] = issueCommentMatch
     return `https://github.com/${repo}/issues#issuecomment-${commentId}`
   }
-  
+
   // Handle other repository URLs: https://api.github.com/repos/owner/repo/...
   if (/^https:\/\/api\.github\.com\/repos\//.test(apiUrl)) {
     return apiUrl.replace(/^https:\/\/api\.github\.com\/repos\//, 'https://github.com/')
   }
-  
+
   // Return as-is if no pattern matches
   return apiUrl
 }
@@ -162,18 +162,18 @@ const AuthorSection: React.FC<{ notification: StoredNotification }> = memo(({ no
 AuthorSection.displayName = 'AuthorSection'
 
 const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, data }) => {
-  const { 
-    notifications, 
-    onMarkAsRead, 
-    formatDate, 
-    escapeHtml, 
-    handleNotificationClick, 
+  const {
+    notifications,
+    onMarkAsRead,
+    formatDate,
+    escapeHtml,
+    handleNotificationClick,
     handleMarkAsReadClick,
     handleMarkAsUnreadClick,
     handleMarkAsDoneClick,
     setItemHeight
   } = data
-  
+
   const notification = notifications[index]
   const itemRef = useRef<HTMLDivElement>(null)
   const heightMeasured = useRef(false)
@@ -299,30 +299,24 @@ const NotificationList: React.FC<NotificationListProps> = ({
   // Load notifications for infinite mode
   const loadNotifications = useCallback(async (page: number = 0, reset: boolean = false) => {
     if (loadingRef.current) return // Prevent multiple simultaneous loads
-    
-    console.log('NotificationList: loadNotifications called with page:', page, 'reset:', reset, 'inboxId:', inboxId)
-    
+
     loadingRef.current = true
     setIsLoading(true)
     try {
       let result: PaginatedNotificationsResult
-      
+
       if (inboxId) {
-        console.log('NotificationList: Loading filtered notifications for inbox:', inboxId)
         result = await window.api.invoke.getFilteredNotificationsPaginated(inboxId, page, initialPageSize)
       } else {
-        console.log('NotificationList: Loading all notifications')
         result = await window.api.invoke.getNotificationsPaginated(page, initialPageSize)
       }
-      
-      console.log('NotificationList: Loaded', result.notifications.length, 'notifications, hasMore:', result.hasMore)
-      
+
       if (reset) {
         setAllNotifications(result.notifications)
       } else {
         setAllNotifications(prev => [...prev, ...result.notifications])
       }
-      
+
       setHasMore(result.hasMore)
       setTotalCount(result.totalCount)
       setCurrentPage(page)
@@ -336,7 +330,6 @@ const NotificationList: React.FC<NotificationListProps> = ({
 
   // Initial load and reset when inboxId changes
   useEffect(() => {
-    console.log('NotificationList: inboxId changed to:', inboxId)
     setAllNotifications([])
     setCurrentPage(0)
     setHasMore(true)
@@ -352,7 +345,6 @@ const NotificationList: React.FC<NotificationListProps> = ({
   // Refresh when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
-      console.log('NotificationList: Refresh triggered by parent')
       setAllNotifications([])
       setCurrentPage(0)
       setHasMore(true)
@@ -480,7 +472,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
   // Function to load more items
   const loadMoreItems = useCallback(async (_startIndex: number, _stopIndex: number) => {
     if (!hasMore || loadingRef.current) return
-    
+
     const nextPage = currentPage + 1
     await loadNotifications(nextPage)
   }, [hasMore, currentPage, loadNotifications])
