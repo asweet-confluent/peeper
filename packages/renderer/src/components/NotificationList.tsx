@@ -1,4 +1,5 @@
 import type { StoredNotification, PaginatedNotificationsResult } from '../../../preload/src/types.js'
+import { formatRelativeTime } from '../../../preload/src/types.js'
 import React, { useEffect, useState, memo, useCallback, useRef } from 'react'
 import { VariableSizeList as List } from 'react-window'
 import InfiniteLoader from 'react-window-infinite-loader'
@@ -46,7 +47,7 @@ interface NotificationItemProps {
   data: {
     notifications: StoredNotification[]
     onMarkAsRead: (notificationId: string) => void
-    formatDate: (dateString: string) => string
+    formatTimestamp: (dateString: string) => { display: string; full: string }
     escapeHtml: (text: string) => string
     handleNotificationClick: (url: string, notificationId: string, isUnread: boolean) => void
     handleMarkAsReadClick: (e: React.MouseEvent, notificationId: string) => void
@@ -165,7 +166,7 @@ const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, 
   const {
     notifications,
     onMarkAsRead,
-    formatDate,
+    formatTimestamp,
     escapeHtml,
     handleNotificationClick,
     handleMarkAsReadClick,
@@ -242,7 +243,12 @@ const NotificationItem: React.FC<NotificationItemProps> = memo(({ index, style, 
             >
               {escapeHtml(notification.repository_full_name)}
             </a>
-            <span>{formatDate(notification.updated_at)}</span>
+            <span 
+              title={formatTimestamp(notification.updated_at).full}
+              className="notification-timestamp"
+            >
+              Updated {formatTimestamp(notification.updated_at).display}
+            </span>
           </div>
           <div className="notification-actions">
             {!!notification.unread && (
@@ -391,8 +397,8 @@ const NotificationList: React.FC<NotificationListProps> = ({
     }
   }, [])
 
-  const formatDate = useCallback((dateString: string) => {
-    return new Date(dateString).toLocaleString()
+  const formatTimestamp = useCallback((dateString: string) => {
+    return formatRelativeTime(dateString)
   }, [])
 
   const escapeHtml = useCallback((text: string) => {
@@ -481,14 +487,14 @@ const NotificationList: React.FC<NotificationListProps> = ({
   const itemData = React.useMemo(() => ({
     notifications: displayNotifications,
     onMarkAsRead,
-    formatDate,
+    formatTimestamp,
     escapeHtml,
     handleNotificationClick,
     handleMarkAsReadClick,
     handleMarkAsUnreadClick,
     handleMarkAsDoneClick,
     setItemHeight
-  }), [displayNotifications, onMarkAsRead, formatDate, escapeHtml, handleNotificationClick, handleMarkAsReadClick, handleMarkAsUnreadClick, handleMarkAsDoneClick, setItemHeight])
+  }), [displayNotifications, onMarkAsRead, formatTimestamp, escapeHtml, handleNotificationClick, handleMarkAsReadClick, handleMarkAsUnreadClick, handleMarkAsDoneClick, setItemHeight])
 
   if (displayNotifications.length === 0 && !isLoading) {
     return (

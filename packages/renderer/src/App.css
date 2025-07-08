@@ -427,6 +427,15 @@ body {
   font-size: 0.9rem;
 }
 
+.notification-timestamp {
+  cursor: help;
+  white-space: nowrap;
+}
+
+.notification-timestamp:hover {
+  color: #f0f6fc;
+}
+
 .notification-repository {
   color: #58a6ff;
   text-decoration: none;
