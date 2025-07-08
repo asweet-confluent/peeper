@@ -101,7 +101,6 @@ const MainApp: React.FC = () => {
         console.error('Sync failed:', result.error)
         return
       }
-      console.log('Sync completed:', result)
       if (result.syncTime) {
         setLastSyncTime(new Date(result.syncTime))
       }
@@ -109,7 +108,6 @@ const MainApp: React.FC = () => {
       // Only refresh notifications if there were actual changes
       console.log('MainApp: Sync completed with newCount:', result.newCount)
       if (result.newCount === undefined || result.newCount > 0) {
-        console.log('MainApp: Refreshing NotificationList after sync')
         // Force NotificationList to refresh by updating the trigger
         setRefreshTrigger(prev => prev + 1)
       } else {

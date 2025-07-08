@@ -12,7 +12,8 @@ const InboxModal: React.FC<InboxModalProps> = ({}) => {
   const [desktopNotifications, setDesktopNotifications] = useState(false)
   
   const inbox = usePeeperStore.use.editingInbox()
-  const onSave = usePeeperStore.use.saveInbox()
+  const saveInbox = usePeeperStore.use.saveInbox()
+
   const setEditingInbox = usePeeperStore.use.setEditingInbox()
   const setShowInboxModal = usePeeperStore.use.setShowInboxModal()
   const onCancel = () => {
@@ -47,7 +48,8 @@ const InboxModal: React.FC<InboxModalProps> = ({}) => {
       desktop_notifications: desktopNotifications ? 1 : 0,
     }
 
-    onSave(newInbox)
+    window.api.invoke.updateInbox(newInbox)
+    saveInbox(newInbox)
   }
 
   const handleBackdropClick = (e: React.MouseEvent) => {
