@@ -99,6 +99,14 @@ Peeper is an Electron-based desktop application that provides a powerful interfa
 2. Install the application following your operating system's standard procedure
 3. Launch Peeper and provide your GitHub Personal Access Token
 
+### macOS
+
+Peeper doesn't use code signing certificates, so on macOS you'll get an error about a "damaged dmg". You'll have to manually remove the file from quarantine to install it:
+
+```sh
+xattr -d com.apple.quarantine peeper.dmg
+```
+
 ## GitHub Token Setup
 
 1. Go to GitHub → Settings → Developer settings → Personal access tokens
