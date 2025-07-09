@@ -166,17 +166,6 @@ const QuickFiltersDropdown: React.FC<QuickFiltersDropdownProps> = ({ inboxId, on
             <span className="checkmark"></span>
             Hide done items
           </label>
-
-          <label className="quick-filter-option">
-            <input
-              type="checkbox"
-              checked={getBooleanValue(config.hide_done)}
-              onChange={toggleHideDone}
-              disabled={loading}
-            />
-            <span className="checkmark"></span>
-            Hide done notifications
-          </label>
         </div>
       )}
     </div>
