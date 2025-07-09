@@ -19,6 +19,8 @@ class WindowManager implements AppModule {
       await context.app.whenReady()
     }
     
+    context.app.setAppUserModelId('com.asweet.peeper')
+    
     // Create window but don't show it yet
     context.mainWindow = await this.restoreOrCreateWindow(false)
     context.app.on('second-instance', () => this.restoreOrCreateWindow(true))
