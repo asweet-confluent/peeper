@@ -54,8 +54,8 @@ export class FilterToSQLConverter {
           this.convertASTToExpression(eb, node.right)
         ])
       
-      case '===':
-      case '!==':
+      case '==':
+      case '!=':
       case '>':
       case '>=':
       case '<':
@@ -96,10 +96,10 @@ export class FilterToSQLConverter {
     }
     
     switch (node.operator) {
-      case '===':
+      case '==':
         return eb(dbColumn, '=', sqliteValue)
       
-      case '!==':
+      case '!=':
         return eb(dbColumn, '!=', sqliteValue)
       
       case '>':

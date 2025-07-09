@@ -14,7 +14,7 @@ export class FilterService {
    * Parse a filter expression string and apply it to a Kysely query builder
    * 
    * @param query The base query builder
-   * @param filterExpression The filter expression string (e.g., "subject_type === 'PullRequest' AND pr_state === 'open'")
+   * @param filterExpression The filter expression string (e.g., "subject_type == 'PullRequest' AND pr_state == 'open'")
    * @returns Modified query builder with filter conditions applied
    */
   applyFilterExpression(query: NotificationQueryBuilder, filterExpression: string): NotificationQueryBuilder {

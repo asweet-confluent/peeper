@@ -438,7 +438,8 @@ export class KyselyDatabaseManager {
     filterExpression: string, 
     quickFilterConfig: QuickFilterConfig | null = null,
     page: number = 0, 
-    pageSize: number = 50
+    pageSize: number = 50,
+    startTime?: string 
   ): Promise<{ notifications: StoredNotification[], totalCount: number, hasMore: boolean }> {
     if (!this.db) {
       throw new Error('Database not initialized')
@@ -482,6 +483,10 @@ export class KyselyDatabaseManager {
         console.error('Filter application error:', error)
         throw new Error(`Invalid filter expression: ${error instanceof Error ? error.message : String(error)}`)
       }
+    }
+    
+    if (startTime) {
+      query = query.where('updated_at', '>=', startTime)
     }
 
     // Get total count with filter applied

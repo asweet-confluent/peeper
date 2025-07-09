@@ -57,10 +57,8 @@ const FilterAutocomplete: React.FC<AutocompleteProps> = ({
   ]
 
   const operators = [
-    { name: '===', description: 'Strict equality' },
-    { name: '!==', description: 'Strict inequality' },
-    { name: '==', description: 'Loose equality (converted to ===)' },
-    { name: '!=', description: 'Loose inequality (converted to !==)' },
+    { name: '==', description: 'Equality' },
+    { name: '!=', description: 'Inequality' },
     { name: 'AND', description: 'Logical AND' },
     { name: 'OR', description: 'Logical OR' },
     { name: 'NOT', description: 'Logical NOT' },

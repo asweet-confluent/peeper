@@ -1,7 +1,7 @@
 import type { BrowserWindow } from 'electron'
 import type { KyselyDatabaseManager } from '../database/kysely-database-manager.js'
 import type { GitHubAPI } from './GitHubAPI.js'
-import type { FilterContext, FilterTemplate, GitHubNotification, Inbox, StoredNotification, SyncResult } from '../types.js'
+import type { FilterTemplate, GitHubNotification, Inbox, StoredNotification, SyncResult } from '../types.js'
 import * as path from 'node:path'
 import { Notification } from 'electron'
 import { dirname } from 'node:path'
@@ -44,7 +44,7 @@ export class NotificationManager {
     }
 
     console.log(`Starting periodic sync with ${preferences.autoSyncIntervalSeconds}s interval`)
-    
+
     // Initial sync
     await this.syncNotifications()
 
@@ -52,7 +52,7 @@ export class NotificationManager {
     const scheduleNextSync = () => {
       this.syncTimeout = setTimeout(async () => {
         await this.syncNotifications()
-        
+
         // Check if auto-sync is still enabled after each sync
         const currentPrefs = await this.dbManager.getPreferences()
         if (currentPrefs.autoSyncEnabled) {
@@ -115,9 +115,25 @@ export class NotificationManager {
         // Get current user info for PR analysis
         const currentUser = await this.githubAPI.getCurrentUser()
         const userTeams = currentUser ? await this.githubAPI.getUserTeams() : []
+        
+        
+        const oldestNotificationInBatch = result.notifications.reduce((acc: GitHubNotification, current: GitHubNotification) => {
+            const accUpdated = Temporal.Instant.from(acc.updated_at)
+            const currentUpdated = Temporal.Instant.from(current.updated_at)
+            return Temporal.Instant.compare(currentUpdated, accUpdated) < 0 ? current : acc
+        });
+        console.log(`Oldest notification in batch: ${oldestNotificationInBatch.id} at ${oldestNotificationInBatch.updated_at}`)
 
         // Process notifications and fetch PR details for pull requests
         for (const notification of result.notifications) {
+          const fallbackSave = async () => {
+            return this.dbManager.saveNotificationWithPRDetails(
+              notification,
+              null,
+              currentUser,
+              userTeams,
+            )
+          }
           if (notification.subject?.type === 'PullRequest' && notification.subject?.url) {
             // Extract PR number from URL
             const prNumber = this.githubAPI.extractPRNumberFromUrl(notification.subject.url)
@@ -140,37 +156,22 @@ export class NotificationManager {
               catch (error) {
                 console.warn(`Failed to fetch PR details for ${notification.repository.full_name}#${prNumber}:`, error)
                 // Fall back to saving without PR details
-                await this.dbManager.saveNotificationWithPRDetails(
-                  notification,
-                  null,
-                  currentUser,
-                  userTeams,
-                )
+                await fallbackSave()
               }
             }
             else {
               // Save PR notification without details
-              await this.dbManager.saveNotificationWithPRDetails(
-                notification,
-                null,
-                currentUser,
-                userTeams,
-              )
+              await fallbackSave()
             }
           }
           else {
             // For non-PR notifications, save without PR details
-            await this.dbManager.saveNotificationWithPRDetails(
-              notification,
-              null,
-              currentUser,
-              userTeams,
-            )
+            await fallbackSave()
           }
         }
 
         // Check for new notifications and show desktop notifications
-        await this.checkForNewNotifications(result.notifications)
+        await this.checkForNewNotifications(oldestNotificationInBatch.updated_at)
       }
 
       return {
@@ -187,33 +188,40 @@ export class NotificationManager {
     }
   }
 
-  private async checkForNewNotifications(notifications: GitHubNotification[]): Promise<void> {
+  private async checkForNewNotifications(startTime: string): Promise<void> {
     const inboxes = await this.dbManager.getInboxes()
 
     for (const inbox of inboxes) {
       if (inbox.desktop_notifications) {
-        // For desktop notifications, use simplified filtering since it's not performance-critical
-        // and we're dealing with GitHub API notifications, not stored ones
-        const filteredNotifications = this.filterNotifications(notifications, inbox.filter_expression || 'true')
-
-        if (filteredNotifications.length > 0) {
-          this.showDesktopNotification(inbox as any, filteredNotifications)
+        // Use database-level filtering to get matching new notifications
+        // We'll fetch a larger page size since we only want to check the new notifications
+        const filteredResult = await this.dbManager.getFilteredNotificationsPaginated(
+          inbox.filter_expression || 'true',
+          null,
+          0,
+          3, // For notification checking, we only need a few results
+          startTime
+        )
+        
+        if (filteredResult.notifications.length > 0) {
+          console.log(`Showing desktop notification for inbox "${inbox.name}" with ${filteredResult.totalCount} new notifications`)
+          this.showDesktopNotification(inbox as any, filteredResult.notifications)
         }
       }
     }
   }
 
-  private showDesktopNotification(inbox: Inbox, notifications: GitHubNotification[]): void {
+  private showDesktopNotification(inbox: Inbox, notifications: StoredNotification[]): void {
     const count = notifications.length
     const title = `${inbox.name} - ${count} new notification${count > 1 ? 's' : ''}`
-    const body = notifications.slice(0, 3).map(n => n.subject?.title || 'Unknown').join('\n')
+    const body = notifications.slice(0, 3).map(n => n.subject_title || 'Unknown').join('\n')
 
     const __filename = fileURLToPath(import.meta.url)
     const __dirname = dirname(__filename)
     const notification = new Notification({
       title,
       body: body + (count > 3 ? `\n... and ${count - 3} more` : ''),
-      icon: path.join(__dirname, '..', 'buildResources/icons', 'icon.png'),
+      icon: path.join(__dirname, '..', 'buildResources', 'icon.ico'),
     })
 
     notification.on('click', () => {
@@ -238,145 +246,9 @@ export class NotificationManager {
     return await this.dbManager.getFilteredNotificationsPaginated(
       inbox.filter_expression || 'true',
       quickFilterConfig,
-      page, 
+      page,
       pageSize
     )
-  }
-
-  // Legacy filtering methods - only used for desktop notifications with GitHub API notifications
-  // Main inbox filtering now uses database-level filtering for better performance
-  private filterNotifications(notifications: GitHubNotification[], filterExpression: string): GitHubNotification[] {
-    if (!filterExpression || filterExpression.trim() === 'true') {
-      return notifications
-    }
-
-    try {
-      return notifications.filter((notification) => {
-        return this.evaluateFilterForGitHubNotification(notification, filterExpression)
-      })
-    }
-    catch (error) {
-      console.error('Error applying filter:', error)
-      return notifications // Return all notifications if filter fails
-    }
-  }
-
-  private evaluateFilterForGitHubNotification(notification: GitHubNotification, expression: string): boolean {
-    const context: FilterContext = {
-      id: notification.id,
-      subject_title: notification.subject?.title || '',
-      subject_type: notification.subject?.type || '',
-      repository_name: notification.repository?.name || '',
-      repository_full_name: notification.repository?.full_name || '',
-      repository_owner: notification.repository?.owner?.login || '',
-      reason: notification.reason || '',
-      unread: Boolean(notification.unread),
-      updated_at: notification.updated_at || '',
-      done: false, // GitHub notifications are never "done" by default
-      // PR fields - not available for GitHubNotification
-      pr_number: undefined,
-      pr_author: undefined,
-      pr_state: undefined,
-      pr_merged: undefined,
-      pr_draft: undefined,
-      pr_assignees: undefined,
-      pr_requested_reviewers: undefined,
-      pr_requested_teams: undefined,
-      pr_labels: undefined,
-      pr_head_ref: undefined,
-      pr_base_ref: undefined,
-      pr_head_repo: undefined,
-      pr_base_repo: undefined,
-      current_user_is_reviewer: undefined,
-      current_user_team_is_reviewer: undefined,
-
-      contains: (field: string, value: string) => {
-        return (field || '').toLowerCase().includes((value || '').toLowerCase())
-      },
-
-      equals: (field: string, value: string) => {
-        return field === value
-      },
-
-      startsWith: (field: string, value: string) => {
-        return (field || '').toLowerCase().startsWith((value || '').toLowerCase())
-      },
-
-      endsWith: (field: string, value: string) => {
-        return (field || '').toLowerCase().endsWith((value || '').toLowerCase())
-      },
-
-      matches: (field: string, regex: string) => {
-        try {
-          return new RegExp(regex, 'i').test(field || '')
-        }
-        catch {
-          return false
-        }
-      },
-
-      includes: (array: string[], value: string) => {
-        return array ? array.includes(value) : false
-      },
-    }
-
-    return this.evaluateFilter(context, expression)
-  }
-
-  private evaluateFilter(context: FilterContext, expression: string): boolean {
-    // Replace field references in the expression
-    const processedExpression = expression
-      .replace(/\bsubject_title\b/g, 'context.subject_title')
-      .replace(/\bsubject_type\b/g, 'context.subject_type')
-      .replace(/\brepository_name\b/g, 'context.repository_name')
-      .replace(/\brepository_full_name\b/g, 'context.repository_full_name')
-      .replace(/\brepository_owner\b/g, 'context.repository_owner')
-      .replace(/\breason\b/g, 'context.reason')
-      .replace(/\bunread\b/g, 'context.unread')
-      .replace(/\bupdated_at\b/g, 'context.updated_at')
-      .replace(/\bdone\b/g, 'context.done')
-      // PR field replacements
-      .replace(/\bpr_number\b/g, 'context.pr_number')
-      .replace(/\bpr_author\b/g, 'context.pr_author')
-      .replace(/\bpr_state\b/g, 'context.pr_state')
-      .replace(/\bpr_merged\b/g, 'context.pr_merged')
-      .replace(/\bpr_draft\b/g, 'context.pr_draft')
-      .replace(/\bpr_assignees\b/g, 'context.pr_assignees')
-      .replace(/\bpr_requested_reviewers\b/g, 'context.pr_requested_reviewers')
-      .replace(/\bpr_requested_teams\b/g, 'context.pr_requested_teams')
-      .replace(/\bpr_labels\b/g, 'context.pr_labels')
-      .replace(/\bpr_head_ref\b/g, 'context.pr_head_ref')
-      .replace(/\bpr_base_ref\b/g, 'context.pr_base_ref')
-      .replace(/\bpr_head_repo\b/g, 'context.pr_head_repo')
-      .replace(/\bpr_base_repo\b/g, 'context.pr_base_repo')
-      .replace(/\bcurrent_user_is_reviewer\b/g, 'context.current_user_is_reviewer')
-      .replace(/\bcurrent_user_team_is_reviewer\b/g, 'context.current_user_team_is_reviewer')
-      // Function replacements
-      .replace(/\bcontains\(/g, 'context.contains(')
-      .replace(/\bequals\(/g, 'context.equals(')
-      .replace(/\bstartsWith\(/g, 'context.startsWith(')
-      .replace(/\bendsWith\(/g, 'context.endsWith(')
-      .replace(/\bmatches\(/g, 'context.matches(')
-      .replace(/\bincludes\(/g, 'context.includes(')
-      // Logical operator replacements
-      .replace(/\bAND\b/g, '&&')
-      .replace(/\bOR\b/g, '||')
-      .replace(/\bNOT\b/g, '!')
-      // Handle == and != operators (but not === and !==)
-      .replace(/(?<!=)==(?!=)/g, '===')
-      .replace(/(?<!!)!=(?!=)/g, '!==')
-
-    try {
-      // Use Function constructor for safer evaluation
-      const evaluator = new Function('context', `return ${processedExpression}`)
-      return evaluator(context)
-    }
-    catch (error) {
-      console.error('Filter evaluation error:', error)
-      console.error('Original expression:', expression)
-      console.error('Processed expression:', processedExpression)
-      return false
-    }
   }
 
   // Predefined filter templates

@@ -32,8 +32,8 @@ const Or = createToken({ name: "Or", pattern: /OR|\|\|/, longer_alt: StringLiter
 const Not = createToken({ name: "Not", pattern: /NOT|!/, longer_alt: StringLiteral })
 
 // Comparison operators
-const Equals = createToken({ name: "Equals", pattern: /===|==/ })
-const NotEquals = createToken({ name: "NotEquals", pattern: /!==|!=/ })
+const Equals = createToken({ name: "Equals", pattern: /==/ })
+const NotEquals = createToken({ name: "NotEquals", pattern: /!=/ })
 const GreaterThan = createToken({ name: "GreaterThan", pattern: />/ })
 const GreaterThanOrEqual = createToken({ name: "GreaterThanOrEqual", pattern: />=/ })
 const LessThan = createToken({ name: "LessThan", pattern: /</ })
@@ -62,14 +62,14 @@ const Identifier = createToken({
 const allTokens = [
   WhiteSpace,
   
+  // Operators
+  Equals, NotEquals, GreaterThanOrEqual, LessThanOrEqual, 
+  GreaterThan, LessThan,
+  
   // Keywords first (longer alternatives)
   And, Or, Not,
   Contains, StartsWith, EndsWith, Matches, Includes,
   BooleanLiteral,
-  
-  // Operators
-  Equals, NotEquals, GreaterThanOrEqual, LessThanOrEqual, 
-  GreaterThan, LessThan,
   
   // Literals
   StringLiteral, NumberLiteral,
@@ -211,7 +211,7 @@ export type FilterAST =
 
 export interface BinaryOpNode {
   type: 'binaryOp'
-  operator: 'AND' | 'OR' | '===' | '!==' | '>' | '>=' | '<' | '<='
+  operator: 'AND' | 'OR' | '==' | '!=' | '>' | '>=' | '<' | '<='
   left: FilterAST
   right: FilterAST
 }
@@ -400,8 +400,8 @@ export class FilterASTBuilder {
 
   private getComparisonOperator(token: IToken): BinaryOpNode['operator'] {
     switch (token.tokenType.name) {
-      case 'Equals': return '==='
-      case 'NotEquals': return '!=='
+      case 'Equals': return '=='
+      case 'NotEquals': return '!='
       case 'GreaterThan': return '>'
       case 'GreaterThanOrEqual': return '>='
       case 'LessThan': return '<'
