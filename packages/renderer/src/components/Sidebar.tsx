@@ -78,26 +78,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     e.preventDefault()
     e.stopPropagation()
 
-    // const handleOutsideClick = (event: MouseEvent) => {
-    //   console.log(`Target clicked: `)
-    //   console.log(event.target)
-    //   console.log(`Context menu ref: `)
-    //   console.log(contextMenuRef.current)
-    //   if (!contextMenuRef.current) {
-    //     console.warn('Detected an outside click ')
-    //   }
-    //   if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
-    //     console.log('Click outside context menu, disabling it')
-    //     disableContextMenu()
-    //   } else {
-    //     console.log('Click inside context menu, keeping it open')
-    //   }
-    // }
-
-    // setTimeout(() => {
-    //   document.addEventListener('click', handleOutsideClick)
-    // }, 0)
-
     enableContextMenu(e.clientX, e.clientY, inbox)
   }
 

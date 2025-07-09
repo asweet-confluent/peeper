@@ -11,7 +11,7 @@ const InboxModal: React.FC<InboxModalProps> = ({}) => {
   const [filterExpression, setFilterExpression] = useState('')
   const [desktopNotifications, setDesktopNotifications] = useState(false)
   
-  const inbox = usePeeperStore.use.editingInbox()
+  const editingInbox = usePeeperStore.use.editingInbox()
   const saveInbox = usePeeperStore.use.saveInbox()
 
   const setEditingInbox = usePeeperStore.use.setEditingInbox()
@@ -22,19 +22,19 @@ const InboxModal: React.FC<InboxModalProps> = ({}) => {
   }
 
   useEffect(() => {
-    if (inbox) {
-      setName(inbox.name)
-      setFilterExpression(inbox.filter_expression || '')
-      setDesktopNotifications(!!inbox.desktop_notifications)
+    if (editingInbox) {
+      setName(editingInbox.name)
+      setFilterExpression(editingInbox.filter_expression || '')
+      setDesktopNotifications(!!editingInbox.desktop_notifications)
     }
     else {
       setName('')
       setFilterExpression('')
       setDesktopNotifications(false)
     }
-  }, [inbox])
+  }, [editingInbox])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!name.trim() || !filterExpression.trim()) {
@@ -42,14 +42,21 @@ const InboxModal: React.FC<InboxModalProps> = ({}) => {
     }
 
     const newInbox: Inbox = {
-      ...(inbox || {}),
+      ...(editingInbox || {}),
       name: name.trim(),
       filter_expression: filterExpression.trim(),
       desktop_notifications: desktopNotifications ? 1 : 0,
     }
+    
+    // TODO: Refactor API to provide a single upsertInbox method
+    if (editingInbox) {
+      window.api.invoke.updateInbox(newInbox)
+      saveInbox(newInbox)
+    } else {
+      newInbox.id = await window.api.invoke.createInbox(newInbox)
+      saveInbox(newInbox)
+    }
 
-    window.api.invoke.updateInbox(newInbox)
-    saveInbox(newInbox)
   }
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -104,7 +111,7 @@ const InboxModal: React.FC<InboxModalProps> = ({}) => {
     <div className="modal-backdrop" onClick={handleBackdropClick}>
       <div className="modal-content inbox-modal">
         <div className="modal-header">
-          <h2>{inbox ? 'Edit Inbox' : 'Create Inbox'}</h2>
+          <h2>{editingInbox ? 'Edit Inbox' : 'Create Inbox'}</h2>
           <button
             className="modal-close"
             onClick={onCancel}
@@ -324,7 +331,7 @@ const InboxModal: React.FC<InboxModalProps> = ({}) => {
               type="submit"
               className="btn btn-primary"
             >
-              {inbox ? 'Update' : 'Create'}
+              {editingInbox ? 'Update' : 'Create'}
             </button>
           </div>
         </form>

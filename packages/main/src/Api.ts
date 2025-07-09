@@ -74,6 +74,9 @@ export function createApiImplementations(
         return await dbManager.getInboxes() as Inbox[]
       },
 
+      /**
+       * Creates a new inbox and returns its ID.
+       */
       createInbox: async (_event: IpcMainInvokeEvent, inbox: Inbox): Promise<number> => {
         return await dbManager.createInbox(inbox as any)
       },
