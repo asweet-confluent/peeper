@@ -117,6 +117,10 @@ xattr -d com.apple.quarantine peeper.dmg
 
 ## Usage
 
+### Notifications
+
+This app is essentially just a local copy of your [GitHub notifications](https://docs.github.com/en/account-and-profile/managing-subscriptions-and-notifications-on-github/setting-up-notifications/configuring-notifications). Since GitHub no longer automatically subscribes you to all the repositories in your organizations, you may not be getting relevant notifications. One to way to address this is to go to every repo you're interested in and click the "Watch" button. Alternatively, you can use the script [here](scripts\subscribe.sh) — it uses the `gh` CLI to subscribe you to every Confluent-owned repo.
+
 ### Creating Your First Inbox
 
 1. Click "Add Inbox" in the sidebar
