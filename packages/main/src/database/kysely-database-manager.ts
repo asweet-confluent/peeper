@@ -162,20 +162,6 @@ export class KyselyDatabaseManager {
 
     // Run migrations for existing databases
     await this.runMigrations()
-
-    // Create default inbox if none exist
-    const inboxCount = await this.db
-      .selectFrom('inboxes')
-      .select(sql<number>`count(*)`.as('count'))
-      .executeTakeFirst()
-
-    if (inboxCount && inboxCount.count === 0) {
-      await this.createInbox({
-        name: 'All Notifications',
-        filter_expression: 'true',
-        desktop_notifications: 1,
-      })
-    }
   }
 
   private async createIndexes(): Promise<void> {
