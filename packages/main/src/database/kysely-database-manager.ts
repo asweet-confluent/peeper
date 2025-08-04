@@ -51,7 +51,7 @@ export class KyselyDatabaseManager {
   private readonly USER_PROFILE_CACHE_TTL = Temporal.Duration.from({hours: 24 * 30})
 
   constructor() {
-    const userDataPath = app.getPath('userData')
+    const userDataPath = process.env.PEEPER_USER_DATA_PATH || app.getPath('userData')
     this.dbPath = path.join(userDataPath, 'peeper-notifications.db')
   }
 

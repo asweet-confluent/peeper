@@ -17,7 +17,7 @@
     "dist:all": "npm run build && electron-builder build --win --mac --linux --config electron-builder.mjs",
     "release": "npm run build && electron-builder build --publish=always --config electron-builder.mjs",
     "test": "npx playwright test ./tests/e2e.spec.ts",
-    "start": "node packages/dev-mode.js",
+    "start": "cross-env PEEPER_USER_DATA_PATH=./userdata node packages/dev-mode.js",
     "dev": "npm run start",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
@@ -26,8 +26,8 @@
   ],
   "dependencies": {
     "@app/main": "*",
-    "electron-updater": "^6.6.5",
-    "electron-log": "^5.2.0"
+    "electron-log": "^5.2.0",
+    "electron-updater": "^6.6.5"
   },
   "devDependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -37,6 +37,7 @@
     "@types/node": "^24.0.10",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "cross-env": "^10.0.0",
     "crossenv": "^0.0.2-security",
     "electron": "^37.2.0",
     "electron-builder": "^26.0.12",
