@@ -300,7 +300,35 @@ const FilterAutocomplete: React.FC<AutocompleteProps> = ({
     const beforeCursor = value.substring(0, cursorPosition)
     const afterCursor = value.substring(cursorPosition)
 
-    // Find the word being typed
+    // Special handling for username suggestions within quotes
+    if (suggestion.type === 'username') {
+      // Check if we're currently inside quotes for a username field
+      const fieldPattern = /(\w+)\s*(===|!==|==|!=)\s*"([^"]*)$/
+      const match = beforeCursor.match(fieldPattern)
+      
+      if (match) {
+        const fieldName = match[1]
+        const operator = match[2]
+        const partialValue = match[3] || ''
+        
+        // Replace just the partial username within the quotes
+        const beforeQuote = beforeCursor.substring(0, beforeCursor.lastIndexOf('"') + 1)
+        const newValue = beforeQuote + suggestion.text + '"' + afterCursor
+        
+        onChange(newValue)
+        setShowSuggestions(false)
+        
+        // Set cursor position after the inserted username but before the closing quote
+        const newCursorPos = beforeQuote.length + suggestion.text.length
+        setTimeout(() => {
+          textarea.focus()
+          textarea.setSelectionRange(newCursorPos, newCursorPos)
+        }, 0)
+        return
+      }
+    }
+
+    // Default behavior for other suggestions
     const words = beforeCursor.split(/\s+/)
     const currentWord = words[words.length - 1] || ''
 
@@ -333,6 +361,7 @@ const FilterAutocomplete: React.FC<AutocompleteProps> = ({
         setSelectedIndex(prev => Math.max(prev - 1, 0))
         break
       case 'Enter':
+      case 'Tab':
         if (suggestions[selectedIndex]) {
           e.preventDefault()
           insertSuggestion(suggestions[selectedIndex])
