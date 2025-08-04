@@ -64,7 +64,7 @@ export class GitHubAPI {
       // If it's not available, this is the first sync and we should set the `since` parameter
       // to a reasonable default (e.g., 1 day ago).
       if (!lastModified) {
-        since = Temporal.Now.instant().subtract('PT1D').toString()
+        since = Temporal.Now.instant().subtract('PT24H').toString()
       }
 
 
