@@ -65,8 +65,8 @@ Peeper is an Electron-based desktop application that provides a powerful interfa
   - `includes(array_field, "value")` - Check if array field includes value (for PR arrays)
 
 #### Supported Operators
-  - `===` or `==` - Equality comparison
-  - `!==` or `!=` - Inequality comparison
+  - `==` - Equality comparison
+  - `!=` - Inequality comparison
   - `>`, `>=`, `<`, `<=` - Numeric comparisons
   - `AND` or `&&` - Logical AND
   - `OR` or `||` - Logical OR
@@ -133,40 +133,40 @@ This app is essentially just a local copy of your [GitHub notifications](https:/
 
 ```javascript
 // All pull request notifications
-subject_type === "PullRequest"
+subject_type == "PullRequest"
 
 // Pull requests where you're requested to review
-reason === "review_requested"
+reason == "review_requested"
 
 // Mentions in a specific repository
-reason === "mention" AND repository_full_name === "microsoft/vscode"
+reason == "mention" AND repository_full_name == "microsoft/vscode"
 
 // Open pull requests assigned to you
-subject_type === "PullRequest" AND pr_state === "open" AND reason === "assign"
+subject_type == "PullRequest" AND pr_state == "open" AND reason == "assign"
 
 // All notifications except drafts
-subject_type !== "PullRequest" OR pr_draft !== true
+subject_type != "PullRequest" OR pr_draft != true
 
 // Pull requests from a specific author
-subject_type === "PullRequest" AND pr_author === "octocat"
+subject_type == "PullRequest" AND pr_author == "octocat"
 
 // Pull requests assigned to a specific user
-subject_type === "PullRequest" AND includes(pr_assignees, "username")
+subject_type == "PullRequest" AND includes(pr_assignees, "username")
 
 // Pull requests where you or your team are reviewing
-subject_type === "PullRequest" AND (current_user_is_reviewer OR current_user_team_is_reviewer)
+subject_type == "PullRequest" AND (current_user_is_reviewer OR current_user_team_is_reviewer)
 
 // Issues with specific labels
-subject_type === "Issue" AND includes(pr_labels, "bug")
+subject_type == "Issue" AND includes(pr_labels, "bug")
 
 // Notifications from repositories containing "react"
 contains(repository_name, "react")
 
 // Pull requests targeting main branch
-subject_type === "PullRequest" AND pr_base_ref === "main"
+subject_type == "PullRequest" AND pr_base_ref == "main"
 
 // Unread notifications that aren't done
-unread === true AND done !== true
+unread == true AND done != true
 ```
 
 ### Managing Notifications

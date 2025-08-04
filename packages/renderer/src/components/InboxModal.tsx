@@ -277,12 +277,12 @@ const InboxModal: React.FC<InboxModalProps> = ({}) => {
                     
                     <p><strong>Examples:</strong></p>
                     <ul>
-                      <li><code>reason === "review_requested"</code></li>
-                      <li><code>subject_type === "PullRequest" AND reason === "mention"</code></li>
-                      <li><code>repository_owner === "microsoft"</code></li>
+                      <li><code>reason == "review_requested"</code></li>
+                      <li><code>subject_type == "PullRequest" AND reason == "mention"</code></li>
+                      <li><code>repository_owner == "microsoft"</code></li>
                       <li><code>includes(pr_assignees, "username")</code></li>
                       <li><code>contains(repository_name, "react")</code></li>
-                      <li><code>pr_state === "open" AND pr_draft !== true</code></li>
+                      <li><code>pr_state == "open" AND pr_draft != true</code></li>
                       <li><code>current_user_is_reviewer OR current_user_team_is_reviewer</code></li>
                     </ul>
                   </div>

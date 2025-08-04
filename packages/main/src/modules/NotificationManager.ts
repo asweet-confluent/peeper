@@ -263,23 +263,23 @@ export class NotificationManager {
       },
       {
         name: 'Pull Requests',
-        expression: 'subject_type === "PullRequest"',
+        expression: 'subject_type == "PullRequest"',
       },
       {
         name: 'Issues',
-        expression: 'subject_type === "Issue"',
+        expression: 'subject_type == "Issue"',
       },
       {
         name: 'Releases',
-        expression: 'subject_type === "Release"',
+        expression: 'subject_type == "Release"',
       },
       {
         name: 'Mentions',
-        expression: 'reason === "mention"',
+        expression: 'reason == "mention"',
       },
       {
         name: 'Assigned to Me',
-        expression: 'reason === "assign"',
+        expression: 'reason == "assign"',
       },
       {
         name: 'Repository Contains "react"',
@@ -287,39 +287,39 @@ export class NotificationManager {
       },
       {
         name: 'Specific Repository',
-        expression: 'repository_full_name === "owner/repo"',
+        expression: 'repository_full_name == "owner/repo"',
       },
       {
         name: 'Multiple Repositories',
-        expression: 'repository_full_name === "owner/repo1" OR repository_full_name === "owner/repo2"',
+        expression: 'repository_full_name == "owner/repo1" OR repository_full_name === "owner/repo2"',
       },
       {
         name: 'PRs by Specific Author',
-        expression: 'subject_type === "PullRequest" AND pr_author === "username"',
+        expression: 'subject_type == "PullRequest" AND pr_author === "username"',
       },
       {
         name: 'Open PRs',
-        expression: 'subject_type === "PullRequest" AND pr_state === "open"',
+        expression: 'subject_type == "PullRequest" AND pr_state === "open"',
       },
       {
         name: 'PRs Assigned to Me',
-        expression: 'subject_type === "PullRequest" AND includes(pr_assignees, "your-username")',
+        expression: 'subject_type == "PullRequest" AND includes(pr_assignees, "your-username")',
       },
       {
         name: 'PRs I\'m Reviewing',
-        expression: 'subject_type === "PullRequest" AND (current_user_is_reviewer OR current_user_team_is_reviewer)',
+        expression: 'subject_type == "PullRequest" AND (current_user_is_reviewer OR current_user_team_is_reviewer)',
       },
       {
         name: 'Draft PRs',
-        expression: 'subject_type === "PullRequest" AND pr_draft',
+        expression: 'subject_type == "PullRequest" AND pr_draft',
       },
       {
         name: 'Done Items',
-        expression: 'done === true',
+        expression: 'done == true',
       },
       {
         name: 'Not Done Items',
-        expression: 'done !== true',
+        expression: 'done != true',
       },
     ]
   }

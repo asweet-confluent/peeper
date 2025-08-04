@@ -135,12 +135,12 @@ const FilterAutocomplete: React.FC<AutocompleteProps> = ({
 
     // Check if we should provide username suggestions
     const shouldProvideUsernameSuggestions = () => {
-      // Look for patterns like: field_name === "partial_username or field_name === "
+      // Look for patterns like: field_name == "partial_username or field_name == "
       // We need to find the field name and check if it's a username field
       const usernameFields = ['pr_author', 'pr_assignees', 'pr_requested_reviewers', 'repository_owner']
 
       // Find the most recent field name mentioned before a comparison operator
-      const fieldPattern = /(\w+)\s*(===|!==|==|!=)\s*"([^"]*)$/
+      const fieldPattern = /(\w+)\s*(==|!=)\s*"([^"]*)$/
       const match = beforeCursor.match(fieldPattern)
 
       if (match) {
@@ -254,7 +254,7 @@ const FilterAutocomplete: React.FC<AutocompleteProps> = ({
       })
 
       // Add value suggestions for known fields
-      const lastFieldMatch = beforeCursor.match(/(\w+)\s*(===|!==|==|!=)\s*"?(\w*)$/)
+      const lastFieldMatch = beforeCursor.match(/(\w+)\s*(==|!=)\s*"?(\w*)$/)
       if (lastFieldMatch) {
         const fieldName = lastFieldMatch[1]
         if (valueSuggestions[fieldName]) {
@@ -303,7 +303,7 @@ const FilterAutocomplete: React.FC<AutocompleteProps> = ({
     // Special handling for username suggestions within quotes
     if (suggestion.type === 'username') {
       // Check if we're currently inside quotes for a username field
-      const fieldPattern = /(\w+)\s*(===|!==|==|!=)\s*"([^"]*)$/
+      const fieldPattern = /(\w+)\s*(==|!=)\s*"([^"]*)$/
       const match = beforeCursor.match(fieldPattern)
       
       if (match) {
