@@ -1,7 +1,7 @@
 {
   "name": "peeper",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "description": "Peep into your GitHub notifications on your desktop.",
   "author": "Alex Sweet <asweet@confluent.io>",
   "license": "Apache-2.0",
