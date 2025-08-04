@@ -1293,3 +1293,312 @@ body {
 .quick-filter-option .checkmark {
   /* For custom checkbox styling if needed */
 }
+
+/* Preferences Modal Styles */
+.preferences-modal {
+  max-width: 650px;
+  max-height: 85vh;
+}
+
+.preference-section {
+  margin-bottom: 2rem;
+}
+
+.preference-section h3 {
+  color: #f0f6fc;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid #30363d;
+  padding-bottom: 0.5rem;
+}
+
+.preference-item {
+  margin-bottom: 1.5rem;
+}
+
+.preference-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: #f0f6fc;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+}
+
+.preference-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.preference-label span {
+  color: #f0f6fc;
+  font-weight: 500;
+}
+
+.preference-description {
+  color: #8b949e;
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0 0;
+  line-height: 1.4;
+}
+
+.preference-select {
+  width: 100%;
+  padding: 0.75rem;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.preference-select:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.preference-input {
+  width: 100%;
+  padding: 0.75rem;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  font-family: 'SF Mono', Monaco, 'Inconsolata', 'Fira Code', 'Droid Sans Mono', monospace;
+}
+
+.preference-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.existing-token-info {
+  background: #0d1117;
+  border: 1px solid #238636;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.existing-token-info .preference-description {
+  color: #56d364;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.token-input-section {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.token-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.token-test-result {
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.token-test-result.success {
+  background: rgba(56, 211, 100, 0.15);
+  color: #56d364;
+  border: 1px solid rgba(56, 211, 100, 0.3);
+}
+
+.token-test-result.error {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+.btn-small {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.preference-description a {
+  color: #58a6ff;
+  text-decoration: none;
+}
+
+.preference-description a:hover {
+  text-decoration: underline;
+}
+
+/* Preferences Modal */
+.preferences-modal {
+  max-width: 700px;
+  max-height: 85vh;
+}
+
+.preference-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #30363d;
+}
+
+.preference-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.preference-section h3 {
+  color: #f0f6fc;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.preference-item {
+  margin-bottom: 1.5rem;
+}
+
+.preference-item:last-child {
+  margin-bottom: 0;
+}
+
+.preference-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #c9d1d9;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+}
+
+.preference-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #238636;
+}
+
+.preference-label span {
+  font-size: 0.95rem;
+}
+
+.preference-description {
+  color: #8b949e;
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0 0;
+  line-height: 1.4;
+}
+
+.preference-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.preference-select:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.preference-input {
+  width: 100%;
+  padding: 0.75rem;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-size: 0.9rem;
+  font-family: 'SF Mono', Monaco, 'Inconsolata', 'Fira Code', 'Droid Sans Mono', monospace;
+}
+
+.preference-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.existing-token-info {
+  margin-top: 0.5rem;
+}
+
+.token-input-section {
+  margin-top: 0.5rem;
+}
+
+.token-input-container {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.token-input-container input {
+  flex: 1;
+}
+
+.btn-small {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.token-test-result {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.token-test-result.success {
+  background: rgba(35, 134, 54, 0.15);
+  color: #56d364;
+  border: 1px solid rgba(35, 134, 54, 0.3);
+}
+
+.token-test-result.error {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+.preference-description a {
+  color: #58a6ff;
+  text-decoration: none;
+}
+
+.preference-description a:hover {
+  text-decoration: underline;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #8b949e;
+  gap: 1rem;
+}
+
+.loading-state .spinner {
+  margin-right: 0;
+}

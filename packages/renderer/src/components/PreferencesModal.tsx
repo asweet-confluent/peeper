@@ -16,11 +16,20 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [githubToken, setGithubToken] = useState('')
+  const [hasExistingToken, setHasExistingToken] = useState(false)
+  const [showToken, setShowToken] = useState(false)
+  const [testingToken, setTestingToken] = useState(false)
+  const [tokenTestResult, setTokenTestResult] = useState<{ success?: boolean; error?: string } | null>(null)
 
   const loadPreferences = async () => {
     try {
       const prefs = await window.api.invoke.getPreferences()
       setPreferences(prefs)
+
+      // Check if user has an existing token
+      const existingToken = await window.api.invoke.getToken()
+      setHasExistingToken(!!existingToken)
     }
     catch (error) {
       console.error('Error loading preferences:', error)
@@ -38,6 +47,12 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({
     setSaving(true)
     try {
       await window.api.invoke.savePreferences(preferences)
+      
+      // Save GitHub token if one was entered
+      if (githubToken.trim()) {
+        await window.api.invoke.saveToken(githubToken.trim())
+      }
+      
       onClose()
     }
     catch (error) {
@@ -45,6 +60,29 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({
     }
     finally {
       setSaving(false)
+    }
+  }
+
+  const handleTestToken = async () => {
+    if (!githubToken.trim()) {
+      setTokenTestResult({ error: 'Please enter a token to test' })
+      return
+    }
+
+    setTestingToken(true)
+    setTokenTestResult(null)
+    
+    try {
+      const result = await window.api.invoke.testToken(githubToken.trim())
+      if (result.success) {
+        setTokenTestResult({ success: true })
+      } else {
+        setTokenTestResult({ error: result.error || 'Token validation failed' })
+      }
+    } catch (error) {
+      setTokenTestResult({ error: error instanceof Error ? error.message : 'Failed to test token' })
+    } finally {
+      setTestingToken(false)
     }
   }
 
@@ -172,6 +210,93 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({
               <p className="preference-description">
                 Play a sound when new notifications arrive
               </p>
+            </div>
+          </div>
+
+          <div className="preference-section">
+            <h3>GitHub Authentication</h3>
+            
+            <div className="preference-item">
+              <label className="preference-label">
+                <span>GitHub Personal Access Token</span>
+              </label>
+              
+              {hasExistingToken && !githubToken && (
+                <div className="existing-token-info">
+                  <p className="preference-description">
+                    ✓ You currently have a token configured.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    onClick={() => setShowToken(true)}
+                  >
+                    Change Token
+                  </button>
+                </div>
+              )}
+              
+              {(!hasExistingToken || showToken || githubToken) && (
+                <div className="token-input-section">
+                  <div className="token-input-container">
+                    <input
+                      type="password"
+                      value={githubToken}
+                      onChange={(e) => {
+                        setGithubToken(e.target.value)
+                        setTokenTestResult(null) // Clear previous test results
+                      }}
+                      placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                      className="preference-input"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={handleTestToken}
+                      disabled={testingToken || !githubToken.trim()}
+                    >
+                      {testingToken ? 'Testing...' : 'Test Token'}
+                    </button>
+                  </div>
+                  
+                  {tokenTestResult && (
+                    <div className={`token-test-result ${tokenTestResult.success ? 'success' : 'error'}`}>
+                      {tokenTestResult.success 
+                        ? '✓ Token is valid and working!' 
+                        : `✗ ${tokenTestResult.error}`
+                      }
+                    </div>
+                  )}
+                  
+                  <p className="preference-description">
+                    Create a personal access token at{' '}
+                    <a 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault()
+                        window.api.invoke.openExternal('https://github.com/settings/tokens?scopes=notifications&description=GitHub%20Notifications%20App')
+                      }}
+                    >
+                      github.com/settings/tokens
+                    </a>
+                    {' '}with the "notifications" scope.
+                  </p>
+                  
+                  {hasExistingToken && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      onClick={() => {
+                        setShowToken(false)
+                        setGithubToken('')
+                        setTokenTestResult(null)
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
