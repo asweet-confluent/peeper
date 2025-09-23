@@ -306,7 +306,7 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({
               <p className="preference-description">
                 Peeper - GitHub Notifications Desktop App
                 <br />
-                Version 1.2.0
+                Version 1.2.1
                 <br />
                 Built with Electron and React
               </p>
