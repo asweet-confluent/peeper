@@ -17,6 +17,7 @@
     "dist:all": "npm run build && electron-builder build --win --mac --linux --config electron-builder.mjs",
     "release": "npm run build && electron-builder build --publish=always --config electron-builder.mjs",
     "test": "npx playwright test ./tests/e2e.spec.ts",
+    "test:unit": "npm run test --workspaces --if-present",
     "start": "cross-env PEEPER_USER_DATA_PATH=./userdata node packages/dev-mode.js",
     "dev": "npm run start",
     "typecheck": "npm run typecheck --workspaces --if-present"

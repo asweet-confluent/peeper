@@ -20,18 +20,15 @@ export function formatRelativeTime(timestamp: string): { display: string; full: 
 
   // const date = zoned.toZonedDateTimeISO(userTimeZone);
   // Full timestamp for tooltip using user's locale and timezone
-  const formatter = new Intl.DateTimeFormat(userLocale, {
+  const full = date.toLocaleString(userLocale, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    timeZoneName: 'short',
-    timeZone: userTimeZone
+    timeZoneName: 'short'
   });
-
-  const full = formatter.format(date.toPlainDateTime());
   const plainNow = now.toPlainDateTime();
   
   const totalWeeks = duration.total({
@@ -41,14 +38,12 @@ export function formatRelativeTime(timestamp: string): { display: string; full: 
 
   // For items older than 5 weeks, show the date using user's locale
   if (totalWeeks > 5) {
-    const dateFormatter = new Intl.DateTimeFormat(userLocale, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      timeZone: userTimeZone
-    });
     return {
-      display: dateFormatter.format(date),
+      display: date.toLocaleString(userLocale, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }),
       full
     };
   }
