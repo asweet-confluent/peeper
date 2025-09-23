@@ -40,7 +40,7 @@
     "@types/react-dom": "^19.1.6",
     "cross-env": "^10.0.0",
     "crossenv": "^0.0.2-security",
-    "electron": "^37.2.0",
+    "electron": "^37.5.1",
     "electron-builder": "^26.0.12",
     "electron-vite": "^3.1.0",
     "electronmon": "^2.0.3",
