@@ -48,8 +48,5 @@
     "playwright": "^1.51.0",
     "typescript": "^5.8.3",
     "vite": "^6.0.5"
-  },
-  "overrides": {
-    "electron": "^37.2.0"
   }
 }
