@@ -17,6 +17,7 @@ export function createApiImplementations(
   notificationManager: NotificationManager,
   // mainWindow: Electron.BrowserWindow | null,
   updateAutoSyncCallback?: (preferences: any) => Promise<void>,
+  checkForUpdates?: (userInitiated?: boolean) => Promise<any>,
 ) {
   return {
     invoke: {
@@ -144,6 +145,14 @@ export function createApiImplementations(
 
       updateQuickFilterConfig: async (_event: IpcMainInvokeEvent, inboxId: number, config: any): Promise<void> => {
         return await dbManager.updateQuickFilterConfig(inboxId, config)
+      },
+
+      // Update management
+      checkForUpdates: async (_event: IpcMainInvokeEvent): Promise<void> => {
+        if (checkForUpdates) {
+          return await checkForUpdates(true) // Always user-initiated when called via API
+        }
+        throw new Error('Update checking is not available')
       },
     },
     on: {

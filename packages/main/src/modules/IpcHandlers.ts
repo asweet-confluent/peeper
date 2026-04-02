@@ -33,7 +33,7 @@ class IpcHandlers implements AppModule {
         }
       }
 
-      this.api = createApiImplementations(dbManager, githubAPI, notificationManager, updateAutoSyncCallback)
+      this.api = createApiImplementations(dbManager, githubAPI, notificationManager, updateAutoSyncCallback, context.checkForUpdates)
       this.emitter = getIpcBridgeApiEmitter(this.api)
       registerIpcHandler(this.api)
       

@@ -9,6 +9,7 @@ import { withNotificationManager } from './modules/NotificationManager.js'
 import { disallowMultipleAppInstance } from './modules/SingleInstanceApp.js'
 import { createWindowManagerModule } from './modules/WindowManager.js'
 import { withAutoUpdater } from './modules/AutoUpdater.js'
+import { withMenuManager } from './modules/MenuManager.js'
 
 export async function initApp(initConfig: AppInitConfig) {
   const moduleRunner = createModuleRunner()
@@ -20,6 +21,7 @@ export async function initApp(initConfig: AppInitConfig) {
   await moduleRunner.init(withNotificationManager())
   await moduleRunner.init(setupIpcHandlers())
   await moduleRunner.init(withAutoUpdater())
+  await moduleRunner.init(withMenuManager())
   // await moduleRunner.init(withDevTools())
 
   await moduleRunner

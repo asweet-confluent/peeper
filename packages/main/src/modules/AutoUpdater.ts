@@ -33,9 +33,41 @@ export function withAutoUpdater(): AppModule {
       // Enable staged rollouts support
       autoUpdater.fullChangelog = true
 
+      // Track if the current check was user-initiated
+      let isUserInitiatedCheck = false
+
+      // Expose manual check function to the module context
+      context.checkForUpdates = async (userInitiated = false) => {
+        isUserInitiatedCheck = userInitiated
+        
+        if (!app.isPackaged) {
+          log.info('Skipping update check - app is not packaged')
+          if (userInitiated && context.mainWindow) {
+            const { dialog } = await import('electron')
+            dialog.showMessageBoxSync(context.mainWindow, {
+              type: 'info',
+              title: 'Update Check',
+              message: 'Development Version',
+              detail: 'Update checks are disabled in development mode.'
+            })
+          }
+          isUserInitiatedCheck = false
+          return
+        }
+        
+        log.info(userInitiated ? 'Manual update check initiated' : 'Checking for updates...')
+        
+        return autoUpdater.checkForUpdatesAndNotify()
+      }
+
       // Set up event handlers
       autoUpdater.on('checking-for-update', () => {
         log.info('Checking for update...')
+        if (isUserInitiatedCheck && context.mainWindow) {
+          // For user-initiated checks, we could show a progress indicator here
+          // For now, just log it
+          log.info('User-initiated update check in progress...')
+        }
       })
 
       autoUpdater.on('update-available', (info) => {
@@ -59,24 +91,39 @@ export function withAutoUpdater(): AppModule {
             log.info('User chose to postpone update')
           }
         }
+        isUserInitiatedCheck = false
       })
 
       autoUpdater.on('update-not-available', (info) => {
         log.info('Update not available:', info)
+        
+        // Show a message for user-initiated checks when no update is available
+        if (isUserInitiatedCheck && context.mainWindow) {
+          dialog.showMessageBoxSync(context.mainWindow, {
+            type: 'info',
+            title: 'No Updates Available',
+            message: 'You\'re up to date!',
+            detail: `Current version: ${app.getVersion()}\n\nYou have the latest version installed.`
+          })
+        }
+        isUserInitiatedCheck = false
       })
 
       autoUpdater.on('error', (err) => {
         log.error('Error in auto-updater:', err)
         
-        // Show error dialog only for critical errors, not network issues
-        if (context.mainWindow && !err.message.includes('ENOTFOUND') && !err.message.includes('ECONNREFUSED')) {
+        // Show error dialog for user-initiated checks or critical errors
+        if (context.mainWindow && (isUserInitiatedCheck || (!err.message.includes('ENOTFOUND') && !err.message.includes('ECONNREFUSED')))) {
           dialog.showMessageBoxSync(context.mainWindow, {
             type: 'error',
             title: 'Update Error',
             message: 'Failed to check for updates',
-            detail: 'There was an error while checking for updates. Please try again later.'
+            detail: isUserInitiatedCheck 
+              ? 'There was an error while checking for updates. Please check your internet connection and try again later.'
+              : 'There was an error while checking for updates. Please try again later.'
           })
         }
+        isUserInitiatedCheck = false
       })
 
       autoUpdater.on('download-progress', (progressObj) => {
@@ -109,6 +156,7 @@ export function withAutoUpdater(): AppModule {
             log.info('User chose to restart later')
           }
         }
+        isUserInitiatedCheck = false
       })
 
       // Check for updates when the app starts (after a delay to let everything load)

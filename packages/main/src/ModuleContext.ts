@@ -9,4 +9,5 @@ export interface ModuleContext {
   notificationManager?: NotificationManager
   dbManager?: KyselyDatabaseManager
   loadWindowContent?: () => Promise<void>
+  checkForUpdates?: (userInitiated?: boolean) => Promise<any>
 }
