@@ -18,10 +18,6 @@ export default /** @type import('electron-builder').Configuration */
       {
         target: 'nsis',
         arch: ['x64', 'ia32']
-      },
-      {
-        target: 'portable',
-        arch: ['x64']
       }
     ],
     icon: 'buildResources/icon.ico'
