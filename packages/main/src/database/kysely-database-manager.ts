@@ -389,6 +389,51 @@ export class KyselyDatabaseManager {
       .execute()
   }
 
+  async updatePRDetails(
+    id: string,
+    prDetails: PullRequestDetails | null,
+    currentUser: UserInfo | null,
+    userTeams: string[],
+  ): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized')
+
+    let isCurrentUserReviewer = false
+    let isCurrentUserTeamReviewer = false
+
+    if (prDetails && currentUser) {
+      isCurrentUserReviewer = prDetails.requested_reviewers?.some(
+        (reviewer: any) => reviewer.login === currentUser.login,
+      ) || false
+
+      if (userTeams.length > 0 && prDetails.requested_teams) {
+        isCurrentUserTeamReviewer = prDetails.requested_teams.some(
+          (team: any) => userTeams.includes(team.slug),
+        )
+      }
+    }
+
+    await this.db
+      .updateTable('notifications')
+      .set({
+        pr_state: prDetails?.state || null,
+        pr_merged: prDetails?.merged ? 1 : 0,
+        pr_draft: prDetails?.draft ? 1 : 0,
+        pr_assignees: prDetails?.assignees ? JSON.stringify(prDetails.assignees.map((a: any) => a.login)) : null,
+        pr_requested_reviewers: prDetails?.requested_reviewers ? JSON.stringify(prDetails.requested_reviewers.map((r: any) => r.login)) : null,
+        pr_requested_teams: prDetails?.requested_teams ? JSON.stringify(prDetails.requested_teams.map((t: any) => t.slug)) : null,
+        pr_labels: prDetails?.labels ? JSON.stringify(prDetails.labels.map((l: any) => l.name)) : null,
+        pr_head_ref: prDetails?.head?.ref || null,
+        pr_base_ref: prDetails?.base?.ref || null,
+        pr_head_repo: prDetails?.head?.repo?.full_name || null,
+        pr_base_repo: prDetails?.base?.repo?.full_name || null,
+        current_user_is_reviewer: isCurrentUserReviewer ? 1 : 0,
+        current_user_team_is_reviewer: isCurrentUserTeamReviewer ? 1 : 0,
+        synced_at: new Date().toISOString(),
+      })
+      .where('id', '=', id)
+      .execute()
+  }
+
   async getNotificationsPaginated(page: number = 0, pageSize: number = 50): Promise<{ notifications: StoredNotification[], totalCount: number, hasMore: boolean }> {
     if (!this.db) {
       throw new Error('Database not initialized')

@@ -39,7 +39,9 @@ export function createApiImplementations(
 
       // Notification management
       getNotificationsPaginated: async (_event: IpcMainInvokeEvent, page: number = 0, pageSize: number = 50) => {
-        return await dbManager.getNotificationsPaginated(page, pageSize)
+        const result = await dbManager.getNotificationsPaginated(page, pageSize)
+        notificationManager.refreshStalePRsInBackground(result.notifications)
+        return result
       },
 
       syncNotifications: async (): Promise<SyncResult> => {

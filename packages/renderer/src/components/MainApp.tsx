@@ -105,14 +105,7 @@ const MainApp: React.FC = () => {
         setLastSyncTime(new Date(result.syncTime))
       }
       
-      // Only refresh notifications if there were actual changes
-      console.log('MainApp: Sync completed with newCount:', result.newCount)
-      if (result.newCount === undefined || result.newCount > 0) {
-        // Force NotificationList to refresh by updating the trigger
-        setRefreshTrigger(prev => prev + 1)
-      } else {
-        console.log('MainApp: No new notifications, skipping refresh')
-      }
+      setRefreshTrigger(prev => prev + 1)
     }
 
     // Set up the event listener only once

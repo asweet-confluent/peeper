@@ -19,6 +19,7 @@ export class NotificationManager {
   private syncTimeout: NodeJS.Timeout | null = null
   // private lastNotificationCount: number = 0
   private syncInProgress: boolean = false
+  private refreshingPRIds = new Set<string>()
 
   // This gets set in the IpcHandlers module.
   // TODO: Come up with a better way of structuring this.
@@ -188,6 +189,51 @@ export class NotificationManager {
     }
   }
 
+  refreshStalePRsInBackground(notifications: StoredNotification[]): void {
+    const threshold = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const toRefresh = notifications.filter(n =>
+      n.subject_type === 'PullRequest' &&
+      n.pr_state === 'open' &&
+      n.pr_number !== null &&
+      (!n.synced_at || n.synced_at < threshold) &&
+      !this.refreshingPRIds.has(n.id),
+    )
+
+    if (toRefresh.length === 0) return
+
+    toRefresh.forEach(n => this.refreshingPRIds.add(n.id))
+
+    this.#doRefreshStalePRs(toRefresh).catch((error) => {
+      console.error('Error in stale PR refresh:', error)
+      toRefresh.forEach(n => this.refreshingPRIds.delete(n.id))
+    })
+  }
+
+  async #doRefreshStalePRs(notifications: StoredNotification[]): Promise<void> {
+    console.log(`Refreshing ${notifications.length} stale open PR notifications`)
+    const currentUser = await this.githubAPI.getCurrentUser()
+    const userTeams = currentUser ? await this.githubAPI.getUserTeams() : []
+
+    for (const n of notifications) {
+      if (!n.pr_number) {
+        this.refreshingPRIds.delete(n.id)
+        continue
+      }
+      try {
+        const prDetails = await this.githubAPI.fetchPullRequestDetails(n.repository_full_name, n.pr_number)
+        await this.dbManager.updatePRDetails(n.id, prDetails, currentUser, userTeams)
+      }
+      catch (error) {
+        console.warn(`Failed to refresh PR ${n.repository_full_name}#${n.pr_number}:`, error)
+      }
+      this.refreshingPRIds.delete(n.id)
+    }
+
+    if (this.emitterApi && this.mainWindow) {
+      this.emitterApi.send.syncCompleted(this.mainWindow, { success: true, newCount: 0 })
+    }
+  }
+
   private async checkForNewNotifications(startTime: string): Promise<void> {
     const inboxes = await this.dbManager.getInboxes()
 
@@ -242,12 +288,15 @@ export class NotificationManager {
     const quickFilterConfig = await this.dbManager.getOrCreateQuickFilterConfig(inboxId)
 
     // Use database-level filtering for improved performance
-    return await this.dbManager.getFilteredNotificationsPaginated(
+    const result = await this.dbManager.getFilteredNotificationsPaginated(
       inbox.filter_expression || 'true',
       quickFilterConfig,
       page,
       pageSize
     )
+
+    this.refreshStalePRsInBackground(result.notifications)
+    return result
   }
 
   // Predefined filter templates
